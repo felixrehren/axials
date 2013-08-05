@@ -32,8 +32,9 @@ TypeSakuma@ := NewType(FamilySakuma@,IsSakuma and IsSakumaStdRep);
 DeclareOperation("Sakuma",[IsList,IsMatrix]);
 DeclareOperation("GetAlgebra",[IsSakuma,IsPosInt,IsString]);
 DeclareOperation("GetAlgebras",[IsSakuma,IsPosInt]);
-DeclareOperation("SubAlgebras",[IsSakuma,IsPosInt,IsString]);
-DeclareOperation("SupAlgebras",[IsSakuma,IsPosInt,IsString]);
+DeclareOperation("SubAlgebras",[IsSakuma,IsList]);
+DeclareOperation("SupAlgebras",[IsSakuma,IsList]);
+DeclareAttribute("Orders",IsSakuma);
 
 DeclareGlobalVariable("MajoranaSakuma");
 DeclareGlobalVariable("MajoranaTheory");

@@ -6,11 +6,12 @@
 InstallMethod( Shapes,
 	[IsTrgp,IsSakuma],
 	function(T,S)
-	local subs, sups, wip, res, PropCh, sh, j, sh2;
+	local subs, sups, wip, res, PropCh, sh, j, sh2, permOnPairs;
 	subs := i -> Filtered([1..Length(Pairs(T))],j->
-		j<>i and IsOne(IncidencePairs(T)[i][j]));
-	sups := i -> Filtered([1..Length(Pairs(T))],j->
 		j<>i and IsOne(IncidencePairs(T)[j][i]));
+	sups := i -> Filtered([1..Length(Pairs(T))],j->
+		j<>i and IsOne(IncidencePairs(T)[i][j]));
+	IncidencePairs(T); # changes order of pairs!
 	wip := [List(Pairs(T),p->Order(Product(p)))];
 	res := [];
 	PropCh := function( sh, i, cl )
@@ -18,14 +19,14 @@ InstallMethod( Shapes,
 		sh := ShallowCopy(sh);
 		sh[i] := cl;
 		res := [];
-		for j in Filtered(subs(i),j->not IsInt(sh[j])) do
+		for j in Filtered(subs(i),j->IsInt(sh[j])) do
 			cc := Filtered(SubAlgebras(S,cl),a->a[1]=sh[j]);
 			if IsEmpty(cc) then return []; fi;
 			for c in cc do Append(res,PropCh( sh, j, c )); od; od;
-		for j in Filtered(sups(i),j->not IsInt(sh[j])) do
+		for j in Filtered(sups(i),j->IsInt(sh[j])) do
 			cc := Filtered(SupAlgebras(S,cl),a->a[1]=sh[j]);
 			if IsEmpty(cc) then return []; fi;
-			for c in cc do Add(res,PropCh( sh, j, c )); od; od;
+			for c in cc do Append(res,PropCh( sh, j, c )); od; od;
 		if IsEmpty(res)
 		then return [sh];
 		else return res; fi;
@@ -38,11 +39,21 @@ InstallMethod( Shapes,
 			else Add(res,sh2); fi;
 		od;
 	od;
+	permOnPairs := function(g)
+		local targets;
+		targets := [1..Length(Pairs(T))];
+		return PermListList( [1..Length(Pairs(T))],
+			List([1..Length(Pairs(T))], i ->
+			First(targets,function(t)
+				if RepresentativeAction( GroupX(T),
+					OnSets(Pairs(T)[i],g),Pairs(T)[t],OnSets ) <> fail
+				then targets := Difference(targets,[t]); return true;
+				else return false; fi;
+				end )) );
+		end;
 	return List(
 		OrbitsDomain(
-			Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),
-				a->PermListList(Pairs(T),List(Pairs(T),p->First(Pairs(T),q->
-				RepresentativeAction(GroupX(T),OnSets(p,a),q,OnSets) <> fail ))) )), 
+			Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),permOnPairs)),
 			res,
 			Permuted ),
 		function(sh)
@@ -52,7 +63,13 @@ InstallMethod( Shapes,
 		return S; end
 	);
 	end
-);
+	);
+	InstallMethod( Shapes,
+	[IsGroup,IsSakuma],
+	function(G,S)
+	return Concatenation(List(GroupToTrgps(G,Orders(S)),T->Shapes(T,S)));
+	end
+	);
 InstallMethod( ShapeStr,
 	[HasShape],
 	S -> Concatenation("(",JoinStringsWithSeparator(

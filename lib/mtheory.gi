@@ -31,16 +31,16 @@ InstallMethod( Mtheory,
 		return T!.fuse(f,g);
 		end
 		);
-	InstallMethod( ViewObj,
+	InstallMethod( ViewString,
 		[IsMtheory],
 		function(T)
-		Print("an Mtheory, central charge ",CentralCharge(T));
+		return Concatenation("an Mtheory, central charge ",CentralCharge(T));
 		end
 		);
 	InstallMethod( Display,
 		[IsMtheory],
 		function(T)
-		Print("Mtheory of central charge ",CentralCharge(T),
+		return Concatenation("Mtheory of central charge ",CentralCharge(T),
 			" with fields ",JoinStringsWithSeparator(Fields(T),", "));
 		end
 );
@@ -90,10 +90,10 @@ InstallMethod( Sakuma,
 	);
 	end
 	);
-	InstallMethod( ViewObj,
+	InstallMethod( ViewString,
 		[IsSakuma],
 		function(S)
-		Print("a specification of ",Length(S!.orders),
+		return Concatenation("a specification of ",String(Length(S!.orders)),
 		" Sakuma (2-generated) algebras (or something)");
 		end
 		);
@@ -113,19 +113,25 @@ InstallMethod( GetAlgebras,
 	end
 	);
 InstallMethod( SubAlgebras,
-	[IsSakuma,IsPosInt,IsString],
-	function(Sak,n,X)
+	[IsSakuma,IsList],
+	function(Sak,nX)
 	return List(Filtered([1..Length(Sak!.orders)],
-		i -> not IsZero(Sak!.incidence[i][Sak!.find(n,X)]) ),
+		i -> not IsZero(Sak!.incidence[i][Sak!.find(nX[1],nX[2])]) ),
 		i->[Sak!.orders[i],Sak!.letters[i]]);
 	end
 	);
 InstallMethod( SupAlgebras,
-	[IsSakuma,IsPosInt,IsString],
-	function(Sak,n,X)
+	[IsSakuma,IsList],
+	function(Sak,nX)
 	return List(Filtered([1..Length(Sak!.orders)],
-		i -> not IsZero(Sak!.incidence[Sak!.find(n,X)][i]) ),
+		i -> not IsZero(Sak!.incidence[Sak!.find(nX[1],nX[2])][i]) ),
 		i->[Sak!.orders[i],Sak!.letters[i]]);
+	end
+	);
+InstallMethod( Orders,
+	[IsSakuma],
+	function(Sak)
+	return Set(Sak!.orders);
 	end
 );
 

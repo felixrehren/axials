@@ -6,6 +6,7 @@
 DeclareAttribute("Shape",IsTrgp);
 
 DeclareOperation("Shapes",[IsTrgp,IsSakuma]);
+DeclareOperation("Shapes",[IsGroup,IsSakuma]);
 DeclareOperation("ShapeStr",[HasShape]);
 DeclareOperation("ShapeStrMlts",[HasShape]);
 
