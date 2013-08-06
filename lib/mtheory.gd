@@ -9,18 +9,20 @@ DeclareRepresentation("IsMtheoryStdRep",
 	IsComponentObjectRep and IsAttributeStoringRep,[]);
 TypeMtheory@ := NewType(FamilyMtheory@,IsMtheory and IsMtheoryStdRep);
 
-DeclareOperation("Mtheory",[IsRat,IsList,IsList]);
+DeclareOperation("Mtheory",[IsRat,IsList,IsList,IsString]);
 DeclareOperation("CentralCharge",[IsMtheory]);
 DeclareOperation("Fields",[IsMtheory]);
+DeclareOperation("Tag",[IsMtheory]);
 DeclareOperation("Fuse",[IsMtheory,IsRat,IsRat]);
+
+DeclareAttribute("Axioms",IsMtheory);
+DeclareAttribute("Tau",IsMtheory);
 
 DeclareOperation("VirasoroMtheory",[IsPosInt,IsPosInt]);
 
 DeclareProperty("IsVirasoroMtheory",IsMtheory);
 DeclareProperty("IsRationalVirasoroMtheory",IsVirasoroMtheory);
 DeclareProperty("IsUnitaryMtheory",IsMtheory);
-
-DeclareAttribute("Axioms",IsMtheory);
 
 ### maybe move this in with shapes
 FamilySakuma@ := NewFamily("SakumaFamily");
@@ -35,6 +37,3 @@ DeclareOperation("GetAlgebras",[IsSakuma,IsPosInt]);
 DeclareOperation("SubAlgebras",[IsSakuma,IsList]);
 DeclareOperation("SupAlgebras",[IsSakuma,IsList]);
 DeclareAttribute("Orders",IsSakuma);
-
-DeclareGlobalVariable("MajoranaSakuma");
-DeclareGlobalVariable("MajoranaTheory");

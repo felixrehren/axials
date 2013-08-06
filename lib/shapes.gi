@@ -58,7 +58,7 @@ InstallMethod( Shapes,
 			Permuted ),
 		function(sh)
 		local S;
-		S := TranspositionGroup(GroupX(T),Transpositions(T));
+		S := TrgpNC(GroupX(T),Transpositions(T));
 		SetShape(S,Representative(sh));
 		return S; end
 	);

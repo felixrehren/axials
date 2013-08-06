@@ -4,15 +4,16 @@
 #
 
 InstallMethod( Mtheory,
-	[IsRat,IsList,IsList],
-	function( c, fields, fusiontbl )
+	[IsRat,IsList,IsList,IsString],
+	function( c, fields, fusiontbl, Tag )
 	return Objectify(
 		TypeMtheory@,
 		rec( 
 			cc := c,
 			fields := fields,
 			fuse := function(f,g)
-				return fusiontbl[Position(fields,f)][Position(fields,g)]; end
+				return fusiontbl[Position(fields,f)][Position(fields,g)]; end,
+			tag := Tag
 		)
 	);
 	end
@@ -20,6 +21,10 @@ InstallMethod( Mtheory,
 	InstallMethod( CentralCharge,
 		[IsMtheory],
 		T -> T!.cc
+	);
+	InstallMethod( Tag,
+		[IsMtheory],
+		T -> T!.tag
 	);
 	InstallMethod( Fields,
 		[IsMtheory],
@@ -31,41 +36,49 @@ InstallMethod( Mtheory,
 		return T!.fuse(f,g);
 		end
 		);
-	InstallMethod( ViewString,
+	InstallMethod( Tag,
 		[IsMtheory],
 		function(T)
-		return Concatenation("an Mtheory, central charge ",CentralCharge(T));
+		return T!.tag;
 		end
 		);
-	InstallMethod( Display,
+	InstallMethod( ViewString,
 		[IsMtheory],
-		function(T)
-		return Concatenation("Mtheory of central charge ",CentralCharge(T),
-			" with fields ",JoinStringsWithSeparator(Fields(T),", "));
-		end
+		T -> Concatenation(
+			"Mtheory ",Tag(T),
+			" of central charge ",String(CentralCharge(T))
+		)
+		);
+	InstallMethod( DisplayString,
+		[IsMtheory],
+		T -> Concatenation(
+			ViewString(T),
+			" with fields ",JoinStringsWithSeparator(List(Fields(T),String),", ")
+		)
 );
 
 InstallMethod( VirasoroMtheory,
 	[IsPosInt,IsPosInt],
 	function(p,q)
 	local pairs, field, fields, fusiontbl, T;
+	if not p > q then return VirasoroMtheory(q,p); fi;
 	pairs := Filtered(Cartesian([1..p-1],[1..q-1]),
 		xx -> xx[1]/xx[2] < p/q);
-	field := xx -> ((p*xx[2]-q*xx[1])^2-(p-q)^2)/(4*p*q);
-	fields := List(pairs,xx -> field);
+	field := xx -> 1/2*((p*xx[2]-q*xx[1])^2-(p-q)^2)/(4*p*q);
+	fields := List(pairs,field);
 	fusiontbl := List(pairs,p1->List(pairs,function(p2)
 		local minx, maxx, miny, maxy;
 		minx := 1 + AbsoluteValue(p1[1]-p2[1]);
 		maxx := Minimum(p1[1]+p2[1]-1,2*p-p1[1]-p2[1]-1);
 		miny := 1 + AbsoluteValue(p1[2]-p2[2]);
 		maxy := Minimum(p1[2]+p2[2]-1,2*q-p1[2]-p2[2]-1);
-		return List(Cartesian([minx,minx+2..maxx],[miny,miny+2..maxy]),
-			field);
+		return List(Cartesian([minx,minx+2..maxx],[miny,miny+2..maxy]),field);
 		end ));
 	T := Mtheory( 
 		1 - 6*(p-q)^2/(p*q),
 		fields,
-		fusiontbl
+		fusiontbl,
+		Concatenation("vir-",String(p),"-",String(q))
 	);
 	SetIsRationalVirasoroMtheory(T,true);
 	if p = q+1 or p=q-1 then SetIsUnitaryMtheory(T,true); fi;
@@ -134,31 +147,3 @@ InstallMethod( Orders,
 	return Set(Sak!.orders);
 	end
 );
-
-InstallValue( MajoranaTheory,
-	Mtheory(1,[1,0,1/4,1/32],
-		[ [ [1],[0],[1/4],[1/32] ],
-			[ [0],[0],[1/4],[1/32] ],
-			[ [1/4],[1/4],[1,0],[1/32] ],
-			[ [1/32],[1/32],[1/32],[1,0,1/4] ] ])
-	);
-InstallValue( MajoranaSakuma,
-	Sakuma(
-	[ [2,"A"],
-		[2,"B"],
-		[3,"A"],
-		[3,"C"],
-		[4,"A"],
-		[4,"B"],
-		[5,"A"],
-		[6,"A"] ],
-	[ [1,0,0,0,0,1,0,1],
-		[0,1,0,0,1,0,0,0],
-		[0,0,1,0,0,0,0,1],
-		[0,0,0,1,0,0,0,0],
-		[0,0,0,0,1,0,0,0],
-		[0,0,0,0,0,1,0,0],
-		[0,0,0,0,0,0,1,0],
-		[0,0,0,0,0,0,0,1] ] )
-);
-
