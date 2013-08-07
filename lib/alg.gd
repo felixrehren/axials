@@ -20,8 +20,12 @@ SetInfoLevel( mai, 3 );
 
 DeclareGlobalVariable( "MalgHelper@" );
 
+DeclareOperation( "Malg", [IsVectorSpace,IsVectorSpace,IsList] );
+DeclareOperation( "Malg", [IsVectorSpace,IsList] );
 DeclareOperation( "TrivialMalg", [] );
 DeclareAttribute( "Dimension", IsMalg );
+DeclareAttribute( "DimensionOuter", IsMalg );
+DeclareAttribute( "Basis", IsMalg );
 DeclareAttribute( "Axes", IsMalg );
 DeclareAttribute( "AutomorphismGroup", IsMalg );
 DeclareAttribute( "Relations", IsMalg );
@@ -30,3 +34,4 @@ DeclareProperty( "Trivial", IsMalg );
 DeclareProperty( "Closed", IsMalg );
 
 DeclareOperation( "AddRelations", [IsMalg,IsVectorSpace] );
+DeclareOperation( "IncreaseClosure", [IsMalg] );

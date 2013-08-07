@@ -26,8 +26,15 @@
 		f := First([l,l-1..1],i->not IsZero(v[i]));
 		if f = fail then return 0;
 		else return f; fi;
-	end);
-
+		end);
+	InstallMethod( KroneckerVector,
+		[IsPosInt,IsPosInt],
+		function(m,n)
+		local v;
+		v := List([1..n],i->0);
+		v[m] := 1;
+		return v;
+		end);
 # lists: logic
 	InstallMethod( Count,
 		[IsList,IsFunction],
@@ -94,6 +101,21 @@
 		[IsMultiplicativeElementWithInverse,IsList],
 		function( omega, g )
 		return Recursive(o -> OnPoints(o,g))(omega);
+		end
+		);
+
+# user
+	InstallMethod( UserChoice,
+		[IsString,IsList],
+		function( Q,Opt )
+		local ans;
+		Print(Q,"\n");
+		while true do
+			ans := InputFromUser(); ## todo: make it so user can type char
+			if ans in Opt then return ans;
+			else Print("what's that? Your options are ",
+				JoinStringsWithSeparator(List(Opt,String),", "),":\n"); fi;
+		od;
 		end
 		);
 

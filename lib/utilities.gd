@@ -7,6 +7,7 @@
 	DeclareOperation( "FilteredPositions", [IsList,IsFunction] );
 	DeclareOperation( "FirstPosition", [IsList,IsFunction] );
 	DeclareOperation( "LastNonzeroPos", [IsList] );
+	DeclareOperation( "KroneckerVector", [IsPosInt,IsPosInt] );
 
 # lists: logic
 	DeclareOperation( "Count", [IsList,IsFunction] );
@@ -27,3 +28,6 @@
 # actions
 	DeclareOperation( "OnPointsRecursive",
 		[IsMultiplicativeElementWithInverse,IsList] );
+
+# user
+	DeclareOperation( "UserChoice", [IsString,IsList] );

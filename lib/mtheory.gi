@@ -11,8 +11,9 @@ InstallMethod( Mtheory,
 		rec( 
 			cc := c,
 			fields := fields,
+			tbl := fusiontbl,
 			fuse := function(f,g)
-				return fusiontbl[Position(fields,f)][Position(fields,g)]; end,
+				return ~.tbl[Position(fields,f)][Position(fields,g)]; end,
 			tag := Tag
 		)
 	);
@@ -54,6 +55,17 @@ InstallMethod( Mtheory,
 		T -> Concatenation(
 			ViewString(T),
 			" with fields ",JoinStringsWithSeparator(List(Fields(T),String),", ")
+		)
+		);
+	InstallMethod( PrintString,
+		[IsMtheory],
+		T -> Concatenation(
+			"Mtheory(",
+			String(CentralCharge(T)),",",
+			String(Fields(T)),",\n",
+			"\t",String(T!.tbl),",\n",
+			"\t\"",Tag(T),"\"\n",
+			")"
 		)
 );
 

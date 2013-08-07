@@ -5,30 +5,12 @@
 
 InstallValue( MrepHelper@,
 	rec(
-		makeRep := function( Th, T, A, f, ss )
-			return  Objectify( 
-			TypeMrep@,
-			rec(
-				Theory := Th,
-				trgp := T,
-				Alg := A,
-				map := f,
-				basis := ss,
-				act := function(om,g)
-					local nz, ws;
-					if IsZero(om) then return om; fi;
-					nz := Filtered([1..Length(om)],i->not IsZero(om[i]));
-					ws := List(Concatenation(~.basis){nz},w->OnPointsRecursive(w,g));
-					return Sum([1..Length(nz)],i->om[nz[i]]*~.map(ws[i]));
-					end
-			) );
-			end
-	,	getSubreps := function( T,G,th )
+		getSubreps := function( T,G,th )
 			local sr, ss, rr, misspos, prespos, ans, m, s, ff;
 
 			sr := [];
 			ss := MaximalSubshapes(T);
-			rr := List(ss,s->LoadMrep(s,th));
+			rr := List(ss,s->GetMrep(s,th));
 			misspos := FilteredPositions(rr,r->r=fail);
 			prespos := FilteredPositions(rr,r->r<>fail);
 
@@ -38,35 +20,31 @@ InstallValue( MrepHelper@,
 				return fail; fi;
 
 			if not IsEmpty(misspos) then
-				Print("missing Algebras for\n",
-					JoinStringsWithSeparator(List(ss{misspos},ViewString),",\n"),"\n",
-					"what would you like to do?\n",
-					"1 = quit, ",
-					"2 = find all, ",
-					"3 = ignore & try subgroups, ",
-					"4 = ignore & continue\n"
-					## todo: make it so user can type char
+				ans := UserChoice( Concatenation(
+						"missing Algebras for\n",
+						JoinStringsWithSeparator(List(ss{misspos},ViewString),",\n"),"\n",
+						"what would you like to do?\n",
+						"1 = quit, ",
+						"2 = find all, ",
+						"3 = ignore & try subgroups, ",
+						"4 = ignore & continue"
+					),
+					[1..4]
 				);
-				while true do
-					ans := InputFromUser();
-					if ans = 1 then return fail; break;
-					elif ans = 2 then
-						FindMreps(List(misspos,m->TrgpSmallerDegreeRep(ss[m])));
-						for m in misspos
-						do rr[m] := LoadMrep(ss[m],th); od;
-						break;
-					elif ans = 3 or ans = 4 then
-						misspos := Difference([1..Length(ss)],misspos);
-						if ans = 3 then
-							for s in ss{misspos}
-							do Append(sr, MrepHelper@.getSubreps(s,G)); od;
-						fi;
-						ss := ss{misspos};
-						rr := rr{misspos};
-						break;
-					else Print("\nwhat's that? 1 / 2 / 3 ?\n");
+				if ans = 1 then return fail;
+				elif ans = 2 then
+					FindMreps(List(misspos,m->AsSmallerPermTrgp(ss[m])));
+					for m in misspos
+					do rr[m] := GetMrep(ss[m],th); od;
+				elif ans = 3 or ans = 4 then
+					misspos := Difference([1..Length(ss)],misspos);
+					if ans = 3 then
+						for s in ss{misspos}
+						do Append(sr, MrepHelper@.getSubreps(s,G)); od;
 					fi;
-				od;
+					ss := ss{misspos};
+					rr := rr{misspos};
+				fi;
 			fi;
 			
 			ff := List([1..Length(rr)],i->AllShapeIsomClasses(rr[i],ss[i]));
@@ -103,48 +81,80 @@ InstallValue( MrepHelper@,
 			else return ss[~.canonSetPos(ss,x)]; fi;
 			end
 	, inSubrep := function( R, S )
-		local tt, bb, alph, dict, s, A, rr, c, pos, emb, al, pstnsR, elmtsS, i, j, v, NewRep;
-		tt := Difference(S!.ss,Alphabet(R));
-		bb := Concatenation(R!.ss,tt);
-		alph := MrepHelper@.closedAlphabet(GroupX(R),bb);
-		dict := NewDictionary(false,true,alph);
-		for s in Alphabet(R) do AddDictionary(dict,s,R!.map(s)); od;
-		A := Alg(R);
-		rr := [];
+			local tt, bb, alph, dict, s, A, rr, c, pos, emb, al, pstnsR, elmtsS, i, j, v, NewRep;
+			tt := Difference(S!.ss,Alphabet(R));
+			bb := Concatenation(R!.ss,tt);
+			alph := MrepHelper@.closedAlphabet(GroupX(R),bb);
+			dict := NewDictionary(false,true,alph);
+			for s in Alphabet(R) do AddDictionary(dict,s,R!.map(s)); od;
+			A := Alg(R);
+			rr := [];
 
-		for c in List( RightTransversal(GroupX(R),GroupX(S)),
-							t -> ConjugatorIsomorphism(GroupX(R),t) ) do
-			tt := Difference((S!.ss)^c,~.closedAlphabet(GroupX(R),bb));
-			bb := Concatenation(bb,List(tt,t->~.canonRep(R,t)));
-			A := MalgHelper@.incBasis(A,Length(tt));
+			for c in List( RightTransversal(GroupX(R),GroupX(S)),
+								t -> ConjugatorIsomorphism(GroupX(R),t) ) do
+				tt := Difference((S!.ss)^c,~.closedAlphabet(GroupX(R),bb));
+				bb := Concatenation(bb,List(tt,t->~.canonRep(R,t)));
+				A := MalgHelper@.incBasis(A,Length(tt));
 
-			pos := List((S!.ss)^c,s->Position(bb,~.canonSet(bb,s)));
-			emb := List( [1..Dimension(S)], i -> Basis(A)[pos[i]] );
-			for s in ~.closedAlphabet(GroupX(R),tt) do
-				AddDictionary(dict,s,S!.map(s)*emb); od;
+				pos := List((S!.ss)^c,s->Position(bb,~.canonSet(bb,s)));
+				emb := List( [1..Dimension(S)], i -> Basis(A)[pos[i]] );
+				for s in ~.closedAlphabet(GroupX(R),tt) do
+					AddDictionary(dict,s,S!.map(s)*emb); od;
 
-			al := Set(List(Alphabet(S),s->MrepHelper@.canonRep(R,s^c)));
-			pstnsR := FilteredPositions(bb,s->All(Recursive(x->x in al)(s)));
-			elmtsS := List(pstnsR,i->
-				S!.map(Recursive(x->First(Alphabet(S),a->a^c=x))(bb[i])) );
+				al := Set(List(Alphabet(S),s->MrepHelper@.canonRep(R,s^c)));
+				pstnsR := FilteredPositions(bb,s->All(Recursive(x->x in al)(s)));
+				elmtsS := List(pstnsR,i->
+					S!.map(Recursive(x->First(Alphabet(S),a->a^c=x))(bb[i])) );
 
-			for i in [1..Length(pstnsR)] do
-				for j in [i..Length(pstnsR)] do
-					v := mult(S,elmtsS[i],elmtsS[j])*emb;
-					if IsBound(R!.mt[pstnsR[i]][pstnsR[j]])
-					then Add(rr,R!.mt[pstnsR[i]][pstnsR[j]] - v);
-					else R!.mt[pstnsR[i]][pstnsR[j]] := v;
-							 R!.mt[pstnsR[j]][pstnsR[i]] := v; fi;
+				for i in [1..Length(pstnsR)] do
+					for j in [i..Length(pstnsR)] do
+						v := mult(S,elmtsS[i],elmtsS[j])*emb;
+						if IsBound(R!.mt[pstnsR[i]][pstnsR[j]])
+						then Add(rr,R!.mt[pstnsR[i]][pstnsR[j]] - v);
+						else R!.mt[pstnsR[i]][pstnsR[j]] := v;
+								 R!.mt[pstnsR[j]][pstnsR[i]] := v; fi;
+					od;
 				od;
 			od;
-		od;
-		NewRep := ~.makeRep( Theory(R), Trgp(R), A, s->LookupDictionary(dict,s), bb );
-		SetAlphabet(NewRep,alph);
-		AddRelations(Alg(NewRep),
-			Relations(Alg(R)) + Subspace(Basis(NewRep),rr));
-		return NewRep;
-		end
+			NewRep := ~.makeRep( Mtheory(R), Trgp(R), A, s->LookupDictionary(dict,s), bb );
+			SetAlphabet(NewRep,alph);
+			AddRelations(Alg(NewRep),
+				Relations(Alg(R)) + Subspace(Basis(NewRep),rr));
+			return NewRep;
+			end
 	)
+);
+
+InstallMethod( Mrep,
+	[IsMtheory,IsTrgp,IsMalg,IsFunction,IsList],
+	function( Th, T, A, f, ss )
+	return Objectify( 
+		TypeMrep@,
+		rec(
+			Mtheory := Th,
+			trgp := T,
+			Alg := A,
+			map := f,
+			ss := ss,
+			act := function(om,g)
+				local nz, ws;
+				if IsZero(om) then return om; fi;
+				nz := Filtered([1..Length(om)],i->not IsZero(om[i]));
+				ws := List(Concatenation(~.basis){nz},w->OnPointsRecursive(w,g));
+				return Sum([1..Length(nz)],i->om[nz[i]]*~.map(ws[i]));
+				end
+		) );
+	end
+	);
+	InstallMethod( Mrep,
+	[IsMtheory,IsTrgp,IsMalg,IsList,IsList],
+	function( Th, T, A, f, ss )
+		local dict, i;
+		dict := NewDictionary(false,true,List(f,x->x[1]));
+		for i in [1..Length(f)]
+		do AddDictionary(dict,f[i][1],f[i][2]); od;
+		return Mrep( Th, T, A, x -> LookupDictionary(dict,x), ss );
+	end
 );
 
 InstallMethod( Alg,
@@ -166,6 +176,10 @@ InstallMethod( Alg,
 	InstallMethod( Alphabet,
 	[IsMrep],
 	R -> MrepHelper@.closedAlphabet(GroupX(R),R!.ss)
+	);
+	InstallMethod( Mtheory,
+	[IsMrep],
+	R -> R!.Mtheory
 );
 
 InstallMethod( ViewString,
@@ -174,13 +188,25 @@ InstallMethod( ViewString,
 		"an M-rep of ",ViewString(Trgp(A)),
 		" on ", ViewString(Alg(A))
 		)
+	);
+InstallMethod( PrintString,
+	[IsMrep],
+	R -> Concatenation(
+		"Mrep(\n",
+		"\t",PrintString(Mtheory(R)),",\n",
+		"\t",PrintString(Trgp(R)),",\n",
+		"\t",PrintString(Alg(R)),",\n",
+		"\t",String(List(Alphabet(R),a->[a,R!.map(a)])),",\n",
+		"\t",PrintString(R!.ss),"\n",
+		")"
+	)
 );
 
 InstallMethod( ImageX,
 	[IsMapping,IsMrep],
 	function( f, R )
-	return MrepHelper@.makeRep(
-		Theory(R),
+	return Mrep(
+		Mtheory(R),
 		ImageX(f,Trgp(R)),
 		ImageX(f,Alg(R)), ### this part! no
 		t -> ImageX(f,AlgEmbed(R,InverseImage(f,t))), ## obv needs doin'
@@ -197,21 +223,22 @@ InstallMethod( Dimension,
 InstallMethod( StartMrep,
 	[HasShape, IsMtheory],
 	function( T, Mth )
-	local A, ss, dict, R, sr, s;
-	A := MalgHelper@.basicMalg(
+	local A, ss, dict, R, sr, s, i;
+	A := MalgHelper@.emptyMalg(
 		Sum(Transpositions(T),t->OrbitLength(GroupX(T),t)) );
 	ss := Immutable(Union(List(Transpositions(T),t->Orbit(GroupX(T),t))));
 	ss := Sorted(ss); # how to make use of sortedness?
-	dict := CreateDictionary(ss,s->Position(ss,s));
-	R := MrepHelper@.makeRep( Mth, T, A, t->LookupDictionary(dict,t), ss );
+	dict := CreateDictionary(ss,s->Basis(A)[Position(ss,s)]);
+	R := Mrep( Mth, T, A, t->LookupDictionary(dict,t), ss );
 
 	sr := MrepHelper@.getSubreps(T,GroupX(T),Mth);
 	for s in sr do R := MrepHelper@.inSubrep( R, s ); od;
 
+	for i in [1..Length(ss)]
+	do A!.mt[i][i] := Basis(A)[i]; od;
 	return R;
 	end
 );
-
 
 #	if not IsBound(MajAlgCore) then MajAlgCore := IdFunc; fi;
 #	PlusTheClosure := function( R )
@@ -258,18 +285,6 @@ InstallMethod( StartMrep,
 #		else return S; fi;
 #	end;
 
-InstallMethod( LoadMrep,
-	[HasShape,IsString],
-	function(s,th)
-	return fail;
-	end
-	);
-InstallMethod( LoadMrep,
-	[HasShape,IsMtheory],
-	function(s,th)
-	return LoadMrep(s,Name(th));
-	end
-	);
 InstallMethod( FindMrep,
 	[HasShape,IsMtheory],
 	function(a,b)

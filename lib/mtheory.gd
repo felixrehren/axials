@@ -16,7 +16,7 @@ DeclareOperation("Tag",[IsMtheory]);
 DeclareOperation("Fuse",[IsMtheory,IsRat,IsRat]);
 
 DeclareAttribute("Axioms",IsMtheory);
-DeclareAttribute("Tau",IsMtheory);
+DeclareAttribute("Miyamoto",IsMtheory);
 
 DeclareOperation("VirasoroMtheory",[IsPosInt,IsPosInt]);
 

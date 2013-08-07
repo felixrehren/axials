@@ -12,7 +12,7 @@ DeclareOperation("ShapeStrMlts",[HasShape]);
 
 DeclareOperation("IsIsomOfShapes",[HasShape,HasShape,IsMapping]);
 DeclareOperation("AllShapeIsomClasses",[HasShape,HasShape]);
-DeclareOperation("HasIsomSubshape",[HasShape,HasShape]);
+DeclareOperation("AreIsomorphicShapes",[HasShape,HasShape]);
 
 DeclareOperation("Subshape",[HasShape,IsTrgp]);
 DeclareOperation("Subshape",[HasShape,IsGroup]);

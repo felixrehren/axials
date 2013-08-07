@@ -116,7 +116,7 @@ InstallMethod( AllShapeIsomClasses,
 	if Sorted(Shape(T)) <> Sorted(Shape(U)) then return []; fi;
 	return Filtered(IsomorphismClassesTrgps(T,U),f->IsIsomOfShapes(T,U,f) );
 	end);
-InstallMethod( HasIsomSubshape,
+InstallMethod( AreIsomorphicShapes,
 	[HasShape,HasShape],
 	function( T, U )
 	if Sorted(Shape(T)) <> Sorted(Shape(U)) then return false; fi;
@@ -158,7 +158,7 @@ InstallMethod( HasIsomorphicSubshape,
 			local s;
 			s := Subshape(S,Image(f));
 			if s = fail then return false;
-			else return HasIsomSubshape(s,T); fi; end );
+			else return AreIsomorphicShapes(s,T); fi; end );
 end
 );
 
