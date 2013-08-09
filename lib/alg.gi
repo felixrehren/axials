@@ -6,35 +6,35 @@
 InstallValue( MalgHelper@,
 	rec(
 		emptyMalg := dim ->
-			Malg( Rationals^dim, List([1..dim],i->[]) )
+			Malg( dim, List([1..dim],i->[]) )
 	,	incBasis := function( A, n )
-		return Objectify( 
-			TypeMalg@,
-			rec(
-				V := Rationals^(Dimension(A)+n),
-				mt := List( [1..Dimension(A)],i->List([1..i],function(j)
-					if IsBound(A!.mt[i][j]) then return A!.mt[i][j]+Zero(~.V); fi; end))
-			) );
+		local z;
+		z := List([1..Dimension(A)+n],i->0);
+		return Malg(
+				Dimension(A)+n,
+				List( [1..Dimension(A)],i->List([1..i],function(j)
+					if IsBound(A!.MT[i][j]) then return A!.MT[i][j]+z; fi; end) )
+			);
 		end
 	)
 );
 
 InstallMethod( Malg,
-	[IsVectorSpace,IsVectorSpace,IsList],
-	function( V, W, mt )
-	return Objectify( 
-		TypeMalg@,
-		rec(
-			V := V,
-			W := W,
-			mt := mt ## lower-triangular
-		) );
+	[IsPosInt,IsList],
+	function( dim, mt )
+	local V;
+	V := Rationals^dim;
+	SetMT(V,mt);
+	return V;
 	end
 	);
 	InstallMethod( Malg,
-	[IsVectorSpace,IsList],
-	function( V, mt )
-	return Malg( V, V, mt );
+	[IsPosInt,IsPosInt,IsList],
+	function( dim, cl, mt )
+	local A;
+	A := Malg( dim, mt );
+	SetClosure(A,Rationals^cl);
+	return A;
 	end
 	);
 	InstallMethod( ViewString,
@@ -47,37 +47,20 @@ InstallMethod( Malg,
 	A -> Concatenation(
 		"Malg(\n",
 			"\tRationals^",String(Dimension(A)),",\n",
-			"\t",String(A!.mt),"\n",
+			"\t",String(A!.MT),"\n",
 		")"
 	)
-);
-
-InstallMethod( TrivialMalg,
+	);
+	InstallMethod( TrivialMalg,
 	[],
 	function()
 	return MalgHelper@.emptyMalg(0);
 	end
 );
 
-InstallMethod( Basis,
+InstallMethod( Mult,
 	[IsMalg],
-	A -> Basis(A!.V)
-	);
-InstallMethod( Dimension,
-	[IsMalg],
-	A -> Dimension(A!.V)
-	);
-InstallMethod( DimensionOuter,
-	[IsMalg],
-	A -> Dimension(A!.W)
-	);
-InstallMethod( Zero,
-	[IsMalg],
-	A -> Zero(A!.V)
-	);
-InstallMethod( Trivial,
-	[IsMalg],
-	A -> IsZero(Dimension(A!.V))
+	A -> Mult( A!.V, A!.W, A!.mt )
 	);
 
 InstallMethod( AddRelations,
@@ -91,22 +74,85 @@ InstallMethod( AddRelations,
 InstallMethod( IncreaseClosure,
 	[IsMalg],
 	function( A )
-	local mt, n, i, j, W;
-	n := DimensionOuter(A);
-	mt := List([1..DimensionOuter(A)],i->[]);
-	for i in [1..DimensionOuter(A)] do
+	local mt, n, i, j, z;
+	if not HasClosure(A) then SetClosure(A,Rationals^Dimension(A)); fi;
+	n := Dimension(Closure(A));
+	mt := List([1..Dimension(Closure(A))],i->[]);
+	for i in [1..Dimension(Closure(A))] do
 		for j in [1..i] do # lower-triangular
-			if IsBound(A!.mt[i]) and IsBound(A!.mt[i][j])
-			then mt[i][j] := A!.mt[i][j];
+			if IsBound(A!.MT[i]) and IsBound(A!.MT[i][j])
+			then mt[i][j] := A!.MT[i][j];
 			else
 				n := n+1;
 				mt[i][j] := KroneckerVector(n,n);
 			fi;
 		od;
 	od;
-	W := Rationals^n;
-	for i in [1..DimensionOuter(A)] do for j in [1..i]
-	do mt[i][j] := mt[i][j] + Zero(W); od; od;
-	return Malg( Rationals^DimensionOuter(A),W,mt );
+	z := List([1..n],i->0);
+	for i in [1..Dimension(Closure(A))] do for j in [1..i]
+	do mt[i][j] := mt[i][j] + z; od; od;
+	return Malg( Dimension(Closure(A)),m,mt );
+	end
+);
+
+InstallMethod( CloseUnderAct,
+	[IsVectorSpace,IsGroup,IsFunction],
+	function( V, G, act )
+		local time, mb, vs, newvs, g, v, w, S;
+		time := Runtime();
+		mb := MutableBasis( Rationals, Basis(V), Zero(V) );
+		vs := BasisVectors(mb);
+		while not IsEmpty(vs) do
+			newvs := [];
+			for g in GeneratorsOfGroup(G) do
+				for v in vs do
+					w := SiftedVector(mb,act(v,g)); # don't necessarily sift w completely,
+					if not IsZero(w) then # just observe if nonzero entries in positions
+						CloseMutableBasis(mb,w); # which cannot be sifted away
+						Add(newvs,w);
+					fi;
+				od;
+			od;
+			vs := newvs;
+		od;
+		S := VectorSpace( Rationals, BasisVectors(mb) );
+		InfoPro("orbiting",time);
+		return S;
+		end
+	);
+	InstallMethod( ImageUnderMult,
+	[IsVectorSpace,IsVectorSpace,IsFunction],
+	function( V, U, mult )
+		local time, mb, v, u, S;
+		time := Runtime();
+		mb := MutableBasis( Rationals, [], Zero(V) );
+		for v in Basis(V) do for u in Basis(U)
+		do CloseMutableBasis( mb, mult(v,u) ); od; od;
+		S := VectorSpace( Rationals, BasisVectors(mb) );
+		InfoPro("multiplying",time);
+		return S;
+		end
+	);
+	InstallMethod( ImageUnderMult,
+	[IsVector,IsVectorSpace,IsFunction],
+	function( v, U, mult )
+	return VectorSpace( Rationals, List(Basis(U,u->mult(v,u))) );
 	end
 	);
+	InstallMethod( CloseUnder,
+	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsFunction],
+	function( V, G, act, U, mult )
+		local W, X, Y, Z;
+		W := V;
+		Y := V;
+		while true do
+			X := CloseUnderAct( Y, G, act );
+			W := W + X;
+			Y := ImageUnderMult( X, U, mult ); 
+			Z := W + Y;
+			if Dimension(Z) = Dimension(W) then break;
+			else W := Z; fi;
+		od;
+		return W;
+		end
+);
