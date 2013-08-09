@@ -45,7 +45,7 @@ InstallMethod( Shapes,
 		return PermListList( [1..Length(Pairs(T))],
 			List([1..Length(Pairs(T))], i ->
 			First(targets,function(t)
-				if RepresentativeAction( GroupX(T),
+				if RepresentativeAction( T,
 					OnSets(Pairs(T)[i],g),Pairs(T)[t],OnSets ) <> fail
 				then targets := Difference(targets,[t]); return true;
 				else return false; fi;
@@ -58,7 +58,7 @@ InstallMethod( Shapes,
 			Permuted ),
 		function(sh)
 		local S;
-		S := TrgpNC(GroupX(T),Transpositions(T));
+		S := TrgpNC(T,Transpositions(T));
 		SetShape(S,Representative(sh));
 		return S; end
 	);
@@ -91,8 +91,7 @@ InstallMethod( ViewObj,
 	[HasShape],
 	function( S )
 	Print(
-		ViewString(GroupX(S)),
-		" with ",StringTrpoClasses@trgps(S), " trpos,",
+		ViewString(S),
 		" shape ",ShapeStr(S)
 		); end
 );
@@ -105,7 +104,7 @@ InstallMethod( IsIsomOfShapes,
 		i -> Shape(T)[i] = Shape(U)[
 			FirstPosition(Pairs(U),
 			u -> RepresentativeAction(
-				GroupX(U),
+				U,
 				u,Image(f,Pairs(T)[i]),
 				OnSets) <> fail)]
 		); end
@@ -130,7 +129,7 @@ InstallMethod( Subshape,
 	SetShape(T,
 		List( Pairs(T),
 			p -> Shape(S)[FirstPosition(Pairs(S),
-			q -> RepresentativeAction(GroupX(S),p,q,OnSets)<>fail)] ) );
+			q -> RepresentativeAction(S,p,q,OnSets)<>fail)] ) );
 	return T;
 	end
 	);
@@ -153,7 +152,7 @@ InstallMethod( MaximalSubshapes,
 InstallMethod( HasIsomorphicSubshape,
 	[HasShape,HasShape],
 	function( S, T )
-	return ForAny(IsomorphicSubgroups(GroupX(S),GroupX(T)),
+	return ForAny(IsomorphicSubgroups(S,T),
 		function(f)
 			local s;
 			s := Subshape(S,Image(f));
@@ -168,6 +167,6 @@ InstallMethod( AutomorphismGroup,
 	Filtered(AutomorphismGroup(S),
 		a -> ForAll([1..Length(Pairs(S))], i ->
 		Shape(S)[i] = Shape(S)[First([1..Length(Pairs(S))], j ->
-		RepresentativeAction(GroupX(S),OnSets(Pairs(S)[i],a),Pairs(S)[j],OnSets)<>fail )]) ))
+		RepresentativeAction(S,OnSets(Pairs(S)[i],a),Pairs(S)[j],OnSets)<>fail )]) ))
 );
 
