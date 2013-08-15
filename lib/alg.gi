@@ -3,14 +3,14 @@
 #	alg implementation
 #
 
-InstallValue( MalgHelper@,
+InstallValue( AlgHelper@,
 	rec(
-		emptyMalg := dim ->
-			Malg( dim, List([1..dim],i->[]) )
+		emptyAlg := dim ->
+			Alg( dim, List([1..dim],i->[]) )
 	,	incBasis := function( A, n )
 		local z;
 		z := List([1..Dimension(A)+n],i->0);
-		return Malg(
+		return Alg(
 				Dimension(A)+n,
 				List( [1..Dimension(A)],i->List([1..i],function(j)
 					if IsBound(A!.MT[i][j]) then return A!.MT[i][j]+z; fi; end) )
@@ -19,7 +19,7 @@ InstallValue( MalgHelper@,
 	)
 );
 
-InstallMethod( Malg,
+InstallMethod( Alg,
 	[IsPosInt,IsList],
 	function( dim, mt )
 	local V;
@@ -28,43 +28,43 @@ InstallMethod( Malg,
 	return V;
 	end
 	);
-	InstallMethod( Malg,
+	InstallMethod( Alg,
 	[IsPosInt,IsPosInt,IsList],
 	function( dim, cl, mt )
 	local A;
-	A := Malg( dim, mt );
+	A := Alg( dim, mt );
 	SetClosure(A,Rationals^cl);
 	return A;
 	end
 	);
 	InstallMethod( ViewString,
-	[IsMalg],
+	[IsAlg],
 	A -> Concatenation(
 		"an M-alg of dim ",String(Dimension(A)) )
 	);
 	InstallMethod( PrintString,
-	[IsMalg],
+	[IsAlg],
 	A -> Concatenation(
-		"Malg(\n",
+		"Alg(\n",
 			"\tRationals^",String(Dimension(A)),",\n",
 			"\t",String(A!.MT),"\n",
 		")"
 	)
 	);
-	InstallMethod( TrivialMalg,
+	InstallMethod( TrivialAlg,
 	[],
 	function()
-	return MalgHelper@.emptyMalg(0);
+	return AlgHelper@.emptyAlg(0);
 	end
 );
 
 InstallMethod( Mult,
-	[IsMalg],
-	A -> Mult( A!.V, A!.W, A!.mt )
+	[IsAlg],
+	A -> Mult( A, Closure(A), A!.MT )
 	);
 
 InstallMethod( AddRelations,
-	[IsMalg,IsVectorSpace],
+	[IsAlg,IsVectorSpace],
 	function( A, X )
 	if HasRelations(A) then A!.Relations := Relations(A) + X;
 	else SetRelations(A,X); fi;
@@ -72,7 +72,7 @@ InstallMethod( AddRelations,
 	);
 
 InstallMethod( IncreaseClosure,
-	[IsMalg],
+	[IsAlg],
 	function( A )
 	local mt, n, i, j, z;
 	if not HasClosure(A) then SetClosure(A,Rationals^Dimension(A)); fi;
@@ -91,7 +91,7 @@ InstallMethod( IncreaseClosure,
 	z := List([1..n],i->0);
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
-	return Malg( Dimension(Closure(A)),m,mt );
+	return Alg( Dimension(Closure(A)),n,mt );
 	end
 );
 
@@ -128,7 +128,7 @@ InstallMethod( CloseUnderAct,
 		mb := MutableBasis( Rationals, [], Zero(V) );
 		for v in Basis(V) do for u in Basis(U)
 		do CloseMutableBasis( mb, mult(v,u) ); od; od;
-		S := VectorSpace( Rationals, BasisVectors(mb) );
+		S := VectorSpace( Rationals, BasisVectors(mb), Zero(V) );
 		InfoPro("multiplying",time);
 		return S;
 		end
@@ -136,7 +136,7 @@ InstallMethod( CloseUnderAct,
 	InstallMethod( ImageUnderMult,
 	[IsVector,IsVectorSpace,IsFunction],
 	function( v, U, mult )
-	return VectorSpace( Rationals, List(Basis(U,u->mult(v,u))) );
+	return VectorSpace( Rationals, List(Basis(U),u->mult(v,u)) );
 	end
 	);
 	InstallMethod( CloseUnder,

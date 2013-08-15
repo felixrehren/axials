@@ -22,7 +22,7 @@ InstallValue( MajoranaSakuma,
 		[0,0,0,0,0,0,1,0],
 		[0,0,0,0,0,0,0,1] ] )
 	);
-InstallValue( MajoranaTheory, VirasoroMtheory(4,3) );
+InstallValue( MajoranaTheory, VirasoroFusion(4,3) );
 
 InstallMethod( MajoranaShapes,
 	[IsGroup],
@@ -34,5 +34,5 @@ InstallMethod( MajoranaShapes,
 	);
 InstallMethod( StartMajRep,
 	[HasShape],
-	S -> StartMrep(S,MajoranaTheory)
+	S -> StartAxialRep(S,MajoranaTheory)
 	);

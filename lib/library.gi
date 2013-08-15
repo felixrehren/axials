@@ -3,7 +3,7 @@
 #	library implementation
 #
 
-InstallMethod( DirectoryMtheory,
+InstallMethod( DirectoryFusion,
 	[IsString],
 	function( str )
 	return Directory(Concatenation(
@@ -11,76 +11,76 @@ InstallMethod( DirectoryMtheory,
 		"data/",str ));
 	end
 	);
-	InstallMethod( DirectoryMtheory,
-	[IsMtheory],
-	th -> DirectoryMtheory(Tag(th))
+	InstallMethod( DirectoryFusion,
+	[IsFusion],
+	th -> DirectoryFusion(Tag(th))
 );
 
-InstallMethod( GetMrep,
-	[IsMtheory],
+InstallMethod( GetAxialRep,
+	[IsFusion],
 	function( th )
 	return Filtered(
-		DirectoryContents(DirectoryMtheory(th)),
+		DirectoryContents(DirectoryFusion(th)),
 		s -> s[1]<>'.');
 	end 			## to do: how to create directories
 	);
-InstallMethod( GetMrep,
+InstallMethod( GetAxialRep,
 	[IsString,IsString],
 	function( th, G )
 	local file;
-	file := Filename( DirectoryMtheory(th), G );
+	file := Filename( DirectoryFusion(th), G );
 	if IsReadableFile(file)
 	then return ReadAsFunction(file);
 	else return fail; fi;
 	end
 	);
-	InstallMethod( GetMrep,
+	InstallMethod( GetAxialRep,
 	[IsString,IsGroup],
 	function( th, G )
-	return GetMrep( th,StructureDescription(G:short) );
+	return GetAxialRep( th,StructureDescription(G:short) );
 	end
 	);
-	InstallMethod( GetMrep,
+	InstallMethod( GetAxialRep,
 	[IsString,IsTrgp],
 	function( th, T )
 	return Filtered(
-		GetMrep(th,GroupX(T)),
+		GetAxialRep(th,T),
 		R -> AreIsomorphicTrgp(Trgp(R),T) );
 	end
 	);
-	InstallMethod( GetMrep,
+	InstallMethod( GetAxialRep,
 	[IsString,HasShape],
 	function( th, S )
 	return Filtered(
-		GetMrep(th,GroupX(S)),
+		GetAxialRep(th,S),
 		R -> HasShape(Trgp(R)) ## always, right?
 			and AreIsomorphicShapes(Trgp(R),S) );
 	end
 	);
-	InstallMethod( GetMrep,
-	[IsMtheory,IsGroup],
+	InstallMethod( GetAxialRep,
+	[IsFusion,IsGroup],
 	function( th, G )
-	return GetMrep( Tag(th), G );
+	return GetAxialRep( Tag(th), G );
 	end
 	);
-	InstallMethod( GetMrep,
-	[IsMtheory,IsTrgp],
+	InstallMethod( GetAxialRep,
+	[IsFusion,IsTrgp],
 	function( th, T )
-	return GetMrep( Tag(th), T );
+	return GetAxialRep( Tag(th), T );
 	end
 	);
-	InstallMethod( GetMrep,
-	[IsMtheory,HasShape],
+	InstallMethod( GetAxialRep,
+	[IsFusion,HasShape],
 	function( th, S )
-	return GetMrep( Tag(th), S );
+	return GetAxialRep( Tag(th), S );
 	end
 );
 
-InstallMethod( WriteMrep,
-	[IsMrep,IsBool],
+InstallMethod( WriteAxialRep,
+	[IsAxialRep,IsBool],
 	function( R, OW )
 	local rr, p, ans;
-	rr := GetMrep( Mtheory(R), GroupX(R) );
+	rr := GetAxialRep( Fusion(R), StructureDescription(Trgp(R):short) );
 	p := FirstPosition(rr,r->AreIsomorphicShapes(Trgp(r),Trgp(R)));
 	if p = fail then Add(rr,R);
 	else
@@ -93,16 +93,16 @@ InstallMethod( WriteMrep,
 		fi;
 	fi;
 	PrintTo(
-		Filename(DirectoryMtheory(Mtheory(R)),StructureDescription(GroupX(R))),
+		Filename(DirectoryFusion(Fusion(R)),StructureDescription(Trgp(R):short)),
 		Concatenation( "return [",
 			JoinStringsWithSeparator(List(rr,PrintString),"\n\n"),"];")
 	);
 	end
 	);
-	InstallMethod( WriteMrep,
-	[IsMrep],
+	InstallMethod( WriteAxialRep,
+	[IsAxialRep],
 	function(R)
-	WriteMrep(R,false);
+	WriteAxialRep(R,false);
 	end
 );
 

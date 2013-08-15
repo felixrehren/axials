@@ -1,8 +1,8 @@
 SetPackageInfo( rec(
-	PackageName := "m-calculator",
+	PackageName := "axials",
 		Version := "1.0",
 	PackageDoc := rec(
-			BookName := "m-calculator",
+			BookName := "axials",
 			SixFile	:= "doc/manual.six",
 			Autoload := true ),
 	PackageWWWHome :=
@@ -17,7 +17,7 @@ SetPackageInfo( rec(
 			WWWHome       := "http://web.mat.bham.ac.uk/~rehrenf/",
 			Institution   := "Birmingham")
 	],
-	BannerString := "M-algebras package, by Felix Rehren\n",
+	BannerString := "Axial algebras and representations package, by Felix Rehren\n",
 	Dependencies := rec(
 			GAP := "4.5",
 			NeededOtherPackages := [ ["GAPDoc", "1.3"],

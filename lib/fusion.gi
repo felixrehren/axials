@@ -1,66 +1,69 @@
 
 #
-#  m theory implementation
+#  fusion implementation
 #
 
-InstallMethod( Mtheory,
+InstallMethod( Fusion,
 	[IsRat,IsList,IsList,IsString],
 	function( c, fields, fusiontbl, Tag )
 	return Objectify(
-		TypeMtheory@,
+		TypeFusion@,
 		rec( 
 			cc := c,
 			fields := fields,
 			tbl := fusiontbl,
 			fuse := function(f,g)
-				return ~.tbl[Position(fields,f)][Position(fields,g)]; end,
+				return fusiontbl[Position(fields,f)][Position(fields,g)]; end,
 			tag := Tag
 		)
 	);
 	end
 );
 	InstallMethod( CentralCharge,
-		[IsMtheory],
+		[IsFusion],
 		T -> T!.cc
 	);
 	InstallMethod( Tag,
-		[IsMtheory],
+		[IsFusion],
 		T -> T!.tag
 	);
 	InstallMethod( Fields,
-		[IsMtheory],
+		[IsFusion],
 		T -> T!.fields
 	);
 	InstallMethod( Fuse,
-		[IsMtheory,IsRat,IsRat],
-		function(T,f,g)
-		return T!.fuse(f,g);
+		[IsFusion],
+		function(T)
+		return
+			function(f,g)
+			return T!.fuse(f,g);
+			end;
 		end
 		);
 	InstallMethod( Tag,
-		[IsMtheory],
+		[IsFusion],
 		function(T)
 		return T!.tag;
 		end
 		);
 	InstallMethod( ViewString,
-		[IsMtheory],
+		[IsFusion],
 		T -> Concatenation(
-			"Mtheory ",Tag(T),
+			"Fusion ",Tag(T),
 			" of central charge ",String(CentralCharge(T))
 		)
 		);
 	InstallMethod( DisplayString,
-		[IsMtheory],
+		[IsFusion],
 		T -> Concatenation(
 			ViewString(T),
 			" with fields ",JoinStringsWithSeparator(List(Fields(T),String),", ")
 		)
 		);
 	InstallMethod( PrintString,
-		[IsMtheory],
+		[IsFusion],
 		T -> Concatenation(
-			"Mtheory(",
+			"Fusion(",
 			String(CentralCharge(T)),",",
 			String(Fields(T)),",\n",
 			"\t",String(T!.tbl),",\n",
@@ -69,16 +72,34 @@ InstallMethod( Mtheory,
 		)
 );
 
-InstallMethod( VirasoroMtheory,
+InstallMethod( Miyamoto,
+	[IsFusion],
+	function( th )
+	local part0, part1, f;
+	part0 := Set(List(Fields(th),f->Fuse(th)(f,f)));
+	part1 := Difference(Fields(th),part0);
+	while true do
+		f := FirstPosition(part1,f->not ForAll(part0,g->Fuse(th)(f,g) in part1));
+		if f = fail then return part1;
+		else
+			Add(part0,part1[f]);
+			Remove(part1,f); 
+		fi;
+	od;
+	end
+);
+
+InstallMethod( VirasoroFusion,
 	[IsPosInt,IsPosInt],
 	function(p,q)
-	local pairs, field, fields, fusiontbl, T;
-	if not p > q then return VirasoroMtheory(q,p); fi;
+	local pairs, field, fields, virtbl, fusiontbl, i, j, T;
+	if not (p > 1 and q > 1 and Gcd(p,q) = 1) then return fail; fi;
+	if not p > q then return VirasoroFusion(q,p); fi;
 	pairs := Filtered(Cartesian([1..p-1],[1..q-1]),
 		xx -> xx[1]/xx[2] < p/q);
 	field := xx -> 1/2*((p*xx[2]-q*xx[1])^2-(p-q)^2)/(4*p*q);
-	fields := List(pairs,field);
-	fusiontbl := List(pairs,p1->List(pairs,function(p2)
+	fields := Concatenation([1],List(pairs,field));
+	virtbl := List(pairs,p1->List(pairs,function(p2)
 		local minx, maxx, miny, maxy;
 		minx := 1 + AbsoluteValue(p1[1]-p2[1]);
 		maxx := Minimum(p1[1]+p2[1]-1,2*p-p1[1]-p2[1]-1);
@@ -86,17 +107,40 @@ InstallMethod( VirasoroMtheory,
 		maxy := Minimum(p1[2]+p2[2]-1,2*q-p1[2]-p2[2]-1);
 		return List(Cartesian([minx,minx+2..maxx],[miny,miny+2..maxy]),field);
 		end ));
-	T := Mtheory( 
+	fusiontbl := [List(fields,f->[f])];
+	for i in [1..Length(pairs)] do
+		fusiontbl[i+1] := [[fields[i+1]]];
+		for j in [1..Length(pairs)] do
+			fusiontbl[i+1][j+1] := virtbl[i][j];
+			if 0 in virtbl[i][j] then Add(fusiontbl[i+1][j+1],1); fi;
+		od;
+	od;
+	if 0 in fields
+	then fusiontbl[Position(fields,0)][Position(fields,0)] := [0]; fi;
+	T := Fusion( 
 		1 - 6*(p-q)^2/(p*q),
 		fields,
 		fusiontbl,
 		Concatenation("vir-",String(p),"-",String(q))
 	);
-	SetIsRationalVirasoroMtheory(T,true);
-	if p = q+1 or p=q-1 then SetIsUnitaryMtheory(T,true); fi;
+	SetIsVirasoroFusion(T,true);
+	SetIsRationalVirasoroFusion(T,true);
+	if p = q+1 or p=q-1 then SetIsUnitaryFusion(T,true); fi;
+
+	if p mod 2 = 0
+	then SetMiyamoto(T,List(Filtered(pairs,p -> p[1] mod 2 = 0),field)); fi;
+	if q mod 2 = 0
+	then SetMiyamoto(T,List(Filtered(pairs,p -> p[2] mod 2 = 0),field));
+	else SetMiyamoto(T,List(Filtered(pairs,p->Sum(p) mod 2 = 1),field));
+	fi;
+
 	return T;
 	end
 );
+
+
+																		#sakuma
+###############################################################################
 
 InstallMethod( Sakuma,
 	[IsList,IsMatrix],

@@ -3,33 +3,35 @@
 #	create declarations
 #
 
-FamilyMrep@ := NewFamily("MrepFamily");
-DeclareCategory("IsMrep",IsObject);
-DeclareRepresentation("IsMrepStdRep",
+FamilyAxialRep@ := NewFamily("AxialRepFamily");
+DeclareCategory("IsAxialRep",IsObject);
+DeclareRepresentation("IsAxialRepStdRep",
 	IsComponentObjectRep and IsAttributeStoringRep,[]);
-TypeMrep@ := NewType(FamilyMrep@,IsMrep and IsMrepStdRep);
+TypeAxialRep@ := NewType(FamilyAxialRep@,IsAxialRep and IsAxialRepStdRep);
 
-DeclareGlobalVariable( "MrepHelper@" );
+DeclareGlobalVariable( "AxialRepHelper@" );
 
-DeclareOperation( "Mrep", [IsMtheory,IsTrgp,IsMalg,IsFunction,IsList] );
-DeclareOperation( "Mrep", [IsMtheory,IsTrgp,IsMalg,IsList,IsList] );
-DeclareOperation( "Alg", [IsMrep] );
-DeclareOperation( "Trgp", [IsMrep] );
-DeclareOperation( "GroupX", [IsMrep] );
+DeclareOperation( "AxialRep", [IsFusion,IsTrgp,IsAlg,IsDictionary,IsList] );
+DeclareOperation( "AxialRep", [IsFusion,IsTrgp,IsAlg,IsList,IsList] );
+DeclareAttribute( "Alg", IsAxialRep );
+DeclareOperation( "Trgp", [IsAxialRep] );
 
-DeclareAttribute( "Mtheory", IsMrep );
-DeclareAttribute( "Basis", IsMrep );
-DeclareAttribute( "Dimension", IsMrep );
-DeclareProperty( "Trivial", IsMrep );
-DeclareAttribute( "Alphabet", IsMrep );
+DeclareAttribute( "Fusion", IsAxialRep );
+DeclareAttribute( "Basis", IsAxialRep );
+DeclareAttribute( "Dimension", IsAxialRep );
+DeclareProperty( "Trivial", IsAxialRep );
+DeclareAttribute( "Alphabet", IsAxialRep );
+DeclareAttribute( "Axes", IsAxialRep );
 
-DeclareOperation( "ImageX", [IsMapping,IsMrep] );
+DeclareOperation( "ImageX", [IsMapping,IsAxialRep] );
+DeclareOperation( "IncreaseClosure", [IsAxialRep] );
 
-DeclareOperation( "StartMrep", [HasShape,IsMtheory] );
-DeclareOperation( "AddIdempotentRelations", [IsMrep] );
-DeclareOperation( "FindMrep", [IsTrgp,IsMtheory] );
-DeclareOperation( "FindMreps", [IsTrgp,IsMtheory] );
+DeclareOperation( "StartAxialRep", [HasShape,IsFusion] );
+DeclareOperation( "AddIdempotentRelations", [IsAxialRep] );
+DeclareOperation( "FindAxialRep", [IsTrgp,IsFusion] );
+DeclareOperation( "FindAxialReps", [IsTrgp,IsFusion] );
 
-DeclareOperation( "ConvertMrep", [IsRecord,IsMtheory] );
-DeclareOperation( "ConvertMreps", [IsDirectory,IsMtheory] );
+DeclareOperation( "ConvertAxialRep", [IsRecord,IsFusion] );
+DeclareOperation( "ConvertAxialReps", [IsDirectory,IsFusion] );
 
+DeclareOperation( "IdealClosure", [IsAxialRep,IsVectorSpace] );
