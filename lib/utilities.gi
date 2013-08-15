@@ -35,6 +35,17 @@
 		v[m] := 1;
 		return v;
 		end);
+	InstallMethod( Independify,
+		[IsList,IsList],
+		function( mat, pos )
+			local i, j;
+			for i in [1..Length(mat)] do
+				mat[i] := mat[i]/mat[i][pos[i]];
+				for j in [1..i-1]
+				do mat[j] := mat[j] - mat[j][pos[i]]*mat[i]; od;
+			od;
+			return mat;
+		end);
 # lists: logic
 	InstallMethod( Count,
 		[IsList,IsFunction],
@@ -64,6 +75,39 @@
 		if IsList(X)
 		then return Sorted(List(X,RecursiveSorted));
 		else return X; fi;
+		end);
+	InstallMethod( PartitionBy,
+		[IsList,IsFunction],
+		function( Set, fn )
+			local values, partition, s, v, p;
+			Set := ShallowCopy(Set);
+			values := [];
+			partition := [];
+			while not IsEmpty(Set) do
+				s := Remove(Set);
+				v := fn(s);
+				p := Position(values,v);
+				if p = fail then
+					Add(values,v);
+					Add(partition,[v,[s]]);
+				else
+					Add(partition[p][2],s); fi;
+			od;
+			return partition;
+		end);
+	InstallMethod( SortedTo,
+		[IsList,IsFunction,IsList],
+		function( A, f, B )
+			local P, R, i, x;
+			P := PartitionBy( A, f );
+			R := [];
+			for i in [1..Length(B)] do
+				x := FirstPosition(P,p->p[1] = B[i]);
+				if x = fail then R[i] := Zero(A[1]);
+				else R[i] := Remove(P,x); fi;
+			od;
+			if not IsEmpty(P) then return fail; fi;
+			return R;
 		end);
 
 # lists: comprehension
@@ -98,9 +142,35 @@
 
 # actions
 	InstallMethod( OnPointsRecursive,
-		[IsMultiplicativeElementWithInverse,IsList],
+		[IsObject,IsMultiplicativeElementWithInverse],
 		function( omega, g )
 		return Recursive(o -> OnPoints(o,g))(omega);
+		end
+		);
+
+# this one is tough to name
+	InstallMethod( Mult,
+		[IsVectorSpace,IsVectorSpace,IsList],
+		function( S, T, Tbl )
+		return function(x,y)
+			local i, j, z;
+			z := ShallowCopy(Zero(T));
+			for i in [1..Dimension(S)] do
+				if not (IsZero(x[i]) or IsZero(y[i])) then
+					if not IsBound(Tbl[i][i]) then return fail; # necessary?
+					else z := z + x[i]*y[i]*Tbl[i][i]; fi;
+				fi;
+				for j in [1..i-1] do
+					if (not IsZero(x[i]) and not IsZero(y[j]))
+					or (not IsZero(x[j]) and not IsZero(y[i])) 
+					then
+						if not IsBound(Tbl[i][j]) then return fail; # necessary?
+						else z := z + (x[i]*y[j]+x[j]*y[i])*Tbl[i][j]; fi;
+					fi;
+				od;
+			od;
+			return z;
+			end;
 		end
 		);
 
@@ -119,6 +189,42 @@
 		end
 		);
 
+# profiling
+	InstallMethod( ElapseStr,
+		[IsPosInt],
+		function( t )
+		local c,s,r,u;
+		s := Runtime() - t;
+		r := "";
+		u := "ms";
+		c := "";
+		if s > 1000 then
+			s := QuoInt(s,1000);
+			u := "s";
+			if s > 120 then
+				s := QuoInt(s,60);
+				u := "m";
+				if s > 120 then
+					r := s mod 60;
+					s := QuoInt(s,60);
+					c := ":";
+					u := "h:m";
+					if s > 24 then
+						r := s mod 24;
+						s := QuoInt(s,24);
+						c := ".";
+						u := "d.h";
+		fi;fi;fi;fi;
+		return Concatenation(PrintString(s),c,PrintString(r)," ",u);
+		end
+	);
+	InstallMethod( InfoPro,
+		[IsString,IsPosInt],
+		function( str, time )
+		if Runtime() - time > 30000
+		then Info( pro, 1, str, ": ", ElapseStr(time) ); fi;
+		end
+	);
 ###############################################################################
 
 																# old code
@@ -219,48 +325,6 @@
 #		if IsEmpty(arg) then return IdFunc;
 #		elif Length(arg) = 1 then return x -> arg[1](x);
 #		else return x -> arg[1](CallFuncList(Compose,tail(arg))(x)); fi; end;
-#	ElapseStr := function( t )
-#		local c,s,r,u;
-#		s := Runtime() - t;
-#		r := "";
-#		u := "ms";
-#		c := "";
-#		if s > 1000 then
-#			s := QuoInt(s,1000);
-#			u := "s";
-#			if s > 120 then
-#				s := QuoInt(s,60);
-#				u := "m";
-#				if s > 120 then
-#					r := s mod 60;
-#					s := QuoInt(s,60);
-#					c := ":";
-#					u := "h:m";
-#					if s > 24 then
-#						r := s mod 24;
-#						s := QuoInt(s,24);
-#						c := ".";
-#						u := "d.h";
-#		fi;fi;fi;fi;
-#		return Concatenation(PrintString(s),c,PrintString(r)," ",u);
-#	end;
-#	PartitionBy := function( Set, fn )
-#		local values, partition, s, v, p;
-#		Set := ShallowCopy(Set);
-#		values := [];
-#		partition := [];
-#		while not IsEmpty(Set) do
-#			s := Remove(Set);
-#			v := fn(s);
-#			p := Position(values,v);
-#			if p = fail then
-#				Add(values,v);
-#				Add(partition,[v,[s]]);
-#			else
-#				Add(partition[p][2],s); fi;
-#		od;
-#		return partition;
-#	end;
 #	SetSubtraction := function( A, B )
 #		local Adash;
 #		Adash := ShallowCopy(A);
@@ -275,21 +339,6 @@
 #		else v := List([1..V],i->0); fi;
 #		v[i] := 1;
 #		return v;
-#	end;
-#	BiLinMap := function( S, T, Tbl ) # (space, space, mat) -> ((vec,vec) -> vec)
-#		return
-#		function(x,y)
-#			local i, j, z;
-#			z := ShallowCopy(Zero(T));
-#			for i in FilteredPositions(x,i->not IsZero(i)) do
-#				for j in FilteredPositions(y,i->not IsZero(i)) do
-#					if not IsBound(Tbl[i][j])
-#					then return fail;
-#					else z := z + x[i]*y[j]*Tbl[i][j]; fi;
-#				od;
-#			od;
-#			return z;
-#		end;
 #	end;
 #	Projectify := function( v )
 #		local p;
