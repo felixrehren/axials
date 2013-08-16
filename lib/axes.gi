@@ -79,25 +79,25 @@ InstallMethod( Axis,
 InstallValue( AxisHelper@,
 	rec(
 		maxmlMultStabSubsp := function( A, a, V )
-			local time, U, i, Uinf, b, v, j, S;
+			local time, U, i, Uinf, b, vv, j, S;
 			time := Runtime();
 			U := [V];
 			i := 1;
 			while true do
-				U[i+1] := ImageUnderMult( a, U[i], Mult(A) );
+				U[i+1] := ImageUnderMult( a, U[i], A );
 				if IsTrivial(U[i+1]) or (U[i] = U[i+1])
 				then break; fi;
 				i := i+1;
 			od;
-			Uinf := [];
+			Uinf := ShallowCopy(Basis(U[i]));
 			for b in Basis(V) do
-				v := ShallowCopy(b);
+				vv := [b];
 				for j in [1..i] do
-					v := Mult(A)(a,v);
-					if v = fail or IsZero(v) then break;
-					elif v in U[i] then Add(Uinf,b{[1..Dimension(A)]}); break; fi;
+					Add(vv,Mult(A)(a,vv[j]));
+					if vv[j+1] = fail or not vv[j+1] in A then break;
+					elif vv[j+1] in U[i] then Append(Uinf,vv); break; fi;
 				od;
-			od;
+			od;			# this does not capture all of Uinf
 			Uinf := Subspace( A, Uinf );
 			InfoPro("mult-stable subspace",time);
 			return Uinf;
@@ -108,7 +108,7 @@ InstallValue( AxisHelper@,
 			if not IsTrivial(Uinf)
 			then vv := List(
 				Eigenvectors(Rationals,List(Basis(Uinf),b->
-					Coefficients(Basis(Uinf),Mult(A)(a,b){[1..Dimension(A)]}) )),
+					Coefficients(Basis(Uinf),Mult(A)(a,b)) )),
 				v -> LinearCombination(Basis(Uinf),v) );
 			else vv := [];
 			fi;
@@ -174,7 +174,7 @@ InstallValue( AxisHelper@,
 				eigspBySplit := Concatenation(List([1,2],i->
 					AxisHelper@.splitSpace( v, vv[i], ff[i] ) ));
 			else
-				eigspBySplit := AxisHelper@.splitSpace(v, Algebra(v), Fields(Fusion(v)));
+				eigspBySplit := AxisHelper@.splitSpace(v, Alg(v), Fields(Fusion(v)));
 			fi;
 			eigspByMult := AxisHelper@.eigspByMult(v);
 			return List([1..Length(Fields(Fusion(v)))],
@@ -237,7 +237,7 @@ InstallMethod( Eigenspaces,
 InstallMethod( CheckLinearity,
 	[IsAxis],
 	function(a)
-	local time, rr, i, b;
+	local time, rr, i, b, S;
 	time := Runtime();
 	rr := [];
 	for i in [1..Length(Fields(Fusion(a)))] do
@@ -246,14 +246,18 @@ InstallMethod( CheckLinearity,
 			Add(rr,Fields(Fusion(a))[i]*b - Mult(Alg(a))(Vector(a),b));
 		od;
 	od;
+	S := Subspace( Closure(Alg(a)), rr );
+	if not IsTrivial(S)
+	then AddRelations( Alg(a), S ); fi;
 	InfoPro("linearity",time);
-	return Subspace( Closure(Alg(a)), rr );
+	return S;
 	end
 	);
 InstallMethod( CheckDirectity,
 	[IsAxis],
 	function( a )
-	local th, composites, pp, II, p, I, i, c;
+	local time, th, composites, pp, II, p, I, i, c, S;
+	time := Runtime();
 	th := Fusion(a);
 	composites := Filtered(
 		PartitionBy(Cartesian(Fields(th),Fields(th)),ff->Fuse(th)(ff[1],ff[2])),
@@ -272,14 +276,19 @@ InstallMethod( CheckDirectity,
 					ImageUnderMult( 
 						Eigenspaces(a)[Position(Fields(th),fg[1])],
 						Eigenspaces(a)[Position(Fields(th),fg[2])],
-						Mult(Alg(a))
+						Alg(a)
 					)
 				);
 			od;
 		od;
 		Add(II,I);
 	od;
-	return Sum(II,I->Intersection(I[1],I[2]));
+	Error();
+	S := Sum(II,I->Intersection(I[1],I[2]));
+	if not IsTrivial(S)
+	then AddRelations( Alg(a), S ); fi;
+	InfoPro("directicity",time);
+	return S;
 	end
 	);
 

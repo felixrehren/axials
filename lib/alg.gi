@@ -25,22 +25,25 @@ InstallMethod( Alg,
 	local V;
 	V := Rationals^dim;
 	SetMT(V,mt);
+	SetClosure(V,Rationals^dim);
 	return V;
 	end
 	);
 	InstallMethod( Alg,
 	[IsPosInt,IsPosInt,IsList],
 	function( dim, cl, mt )
-	local A;
-	A := Alg( dim, mt );
-	SetClosure(A,Rationals^cl);
-	return A;
+	local W, V;
+	W := Rationals^cl;
+	V := Subspace(W,Basis(W){[1..dim]});
+	SetMT(V,mt);
+	SetClosure(V,W);
+	return V;
 	end
 	);
 	InstallMethod( ViewString,
 	[IsAlg],
 	A -> Concatenation(
-		"an M-alg of dim ",String(Dimension(A)) )
+		"an alg of dim ",String(Dimension(A)) )
 	);
 	InstallMethod( PrintString,
 	[IsAlg],
@@ -61,14 +64,6 @@ InstallMethod( Alg,
 InstallMethod( Mult,
 	[IsAlg],
 	A -> Mult( A, Closure(A), A!.MT )
-	);
-
-InstallMethod( AddRelations,
-	[IsAlg,IsVectorSpace],
-	function( A, X )
-	if HasRelations(A) then A!.Relations := Relations(A) + X;
-	else SetRelations(A,X); fi;
-	end
 	);
 
 InstallMethod( IncreaseClosure,
@@ -92,6 +87,23 @@ InstallMethod( IncreaseClosure,
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
 	return Alg( Dimension(Closure(A)),n,mt );
+	end
+	);
+InstallMethod( AddRelations,
+	[IsAlg,IsVectorSpace],
+	function( A, X )
+	if HasRelations(A) then A!.Relations := Relations(A) + X;
+	else SetRelations(A,X); fi;
+	end
+	);
+InstallMethod( Quotient,
+	[IsAlg,IsVectorSpace],
+	function( A, X )
+	local Q, mt;
+	Q := NaturalHomomorphismBySubspace( Closure(A), X );		
+	mt := List(A!.MT,R -> List(R,e->Image(Q,e)));
+	return Alg( Dimension(A) - Dimension(Intersection(A,X)),
+							Dimension(Closure(A)) - Dimension(X), mt );
 	end
 );
 
@@ -120,39 +132,57 @@ InstallMethod( CloseUnderAct,
 		return S;
 		end
 	);
-	InstallMethod( ImageUnderMult,
-	[IsVectorSpace,IsVectorSpace,IsFunction],
-	function( V, U, mult )
+InstallMethod( ImageUnderMult,
+	[IsVectorSpace,IsVectorSpace,IsAlg],
+	function( V, U, A )
 		local time, mb, v, u, S;
 		time := Runtime();
 		mb := MutableBasis( Rationals, [], Zero(V) );
-		for v in Basis(V) do for u in Basis(U)
-		do CloseMutableBasis( mb, mult(v,u) ); od; od;
+		for v in Basis(Intersection(A,V)) do for u in Basis(Intersection(A,U))
+		do CloseMutableBasis( mb, Mult(A)(v,u) ); od; od;
 		S := VectorSpace( Rationals, BasisVectors(mb), Zero(V) );
 		InfoPro("multiplying",time);
 		return S;
 		end
 	);
 	InstallMethod( ImageUnderMult,
-	[IsVector,IsVectorSpace,IsFunction],
-	function( v, U, mult )
-	return VectorSpace( Rationals, List(Basis(U),u->mult(v,u)) );
+	[IsVector,IsVectorSpace,IsAlg],
+	function( v, U, A )
+	if not v in A then return TrivialSubspace(A);
+	else return
+		VectorSpace(Rationals,List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
+	fi;
 	end
 	);
-	InstallMethod( CloseUnder,
-	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsFunction],
-	function( V, G, act, U, mult )
+InstallMethod( IdealClosure,
+	[IsAlg,IsVectorSpace],
+	function( A, V )
+	local W, X, Y;
+	W := V;
+	X := V;
+	while true do
+		X := ImageUnderMult( X,A,A );
+		Y := W + X;
+		if Dimension(Y) = Dimension(W) then break;
+		else W := Y; fi;
+	od;
+	return W;
+	end
+	);
+InstallMethod( CloseUnder,
+	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsAlg],
+	function( V, G, act, U, A )
 		local W, X, Y, Z;
 		W := V;
 		Y := V;
 		while true do
 			X := CloseUnderAct( Y, G, act );
 			W := W + X;
-			Y := ImageUnderMult( X, U, mult ); 
+			Y := ImageUnderMult( X, U, A ); 
 			Z := W + Y;
 			if Dimension(Z) = Dimension(W) then break;
 			else W := Z; fi;
 		od;
 		return W;
 		end
-);
+	);

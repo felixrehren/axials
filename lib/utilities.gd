@@ -27,6 +27,7 @@
 
 # dict
 	DeclareOperation( "CreateDictionary", [IsCollection,IsFunction] );
+	DeclareOperation( "CreateDictionary", [IsCollection,IsCollection] );
 
 # actions
 	DeclareOperation( "OnPointsRecursive",

@@ -20,13 +20,14 @@ DeclareGlobalVariable( "AlgHelper@" );
 DeclareOperation( "Alg", [IsPosInt,IsList] );
 DeclareOperation( "Alg", [IsPosInt,IsPosInt,IsList] );
 DeclareOperation( "TrivialAlg", [] );
-DeclareOperation( "AddRelations", [IsAlg,IsVectorSpace] );
 DeclareOperation( "IncreaseClosure", [IsAlg] );
+DeclareOperation( "AddRelations", [IsAlg,IsVectorSpace] );
+DeclareOperation( "Quotient", [IsAlg,IsVectorSpace] );
 
 DeclareOperation( "CloseUnderAct", [IsVectorSpace,IsGroup,IsFunction] );
-DeclareOperation( "ImageUnderMult", [IsVectorSpace,IsVectorSpace,IsFunction] );
-DeclareOperation( "ImageUnderMult", [IsVector,IsVectorSpace,IsFunction] );
+DeclareOperation( "ImageUnderMult", [IsVectorSpace,IsVectorSpace,IsAlg] );
+DeclareOperation( "ImageUnderMult", [IsVector,IsVectorSpace,IsAlg] );
 DeclareOperation( "CloseUnder",
-	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsFunction] );
+	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsAlg] );
 DeclareOperation( "IdealClosure", [IsAlg,IsVectorSpace] );
 

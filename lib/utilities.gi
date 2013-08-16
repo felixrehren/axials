@@ -139,6 +139,16 @@
 		return d;
 		end
 		);
+	InstallMethod( CreateDictionary,
+		[IsCollection,IsCollection],
+		function( dom, im )
+		local d, x;
+		d := NewDictionary(false,true,dom);
+		for x in [1..Length(dom)]
+		do AddDictionary(d,dom[x],im[x]); od;
+		return d;
+		end
+		);
 
 # actions
 	InstallMethod( OnPointsRecursive,

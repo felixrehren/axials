@@ -194,7 +194,7 @@ InstallMethod( Alg,
 InstallMethod( ViewString,
 	[IsAxialRep],
 	A -> Concatenation(
-		"an M-rep of ",ViewString(Trgp(A)),
+		"an axial rep of ",ViewString(Trgp(A)),
 		" on ", ViewString(Alg(A))
 		)
 	);
@@ -257,6 +257,38 @@ InstallMethod( IncreaseClosure,
 		Alg( Dimension(Closure(A)), n, mt ),
 		CreateDictionary(Alphabet(R),a->R!.map(a)+z), ss );
 	end
+	);
+InstallMethod( IdealClosure,
+	[IsAxialRep,IsVectorSpace],
+	function( R, V )
+	return CloseUnder( V, Trgp(R), R!.act, Alg(R), Alg(R) );
+	end
+	);
+InstallMethod( Quotient,
+	[IsAxialRep,IsVectorSpace],
+	function( R, X )
+	local Q, K, l, B, s, v, w;
+	Q := NaturalHomomorphismBySubspace( Closure(Alg(R)), X );
+	K := MutableBasis( Rationals, [], Zero(Closure(Alg(R))) );
+	l := [1..Length(R!.ss)];
+	B := Basis(VectorSpace(Rationals,List(Basis(X),Reversed)));
+	for s in [Length(R!.ss),Length(R!.ss)-1..1] do
+		v := R!.map(R!.ss[s]);
+		w := v - Reversed(SiftedVector(B,Reversed(v)));
+		if IsZero(w) then continue; fi;
+		w := SiftedVector(K,w);
+		if IsZero(w) then continue;
+		else
+			CloseMutableBasis(K,w);
+			Remove(l,s);
+		fi;
+	od;
+	return AxialRep( Fusion(R), Trgp(R),
+		Quotient(Alg(R),X),
+		CreateDictionary(Alphabet(R),a->Image(Q,R!.map(a))),
+		R!.ss{l}
+	);
+	end
 );
 
 
@@ -278,63 +310,10 @@ InstallMethod( StartAxialRep,
 
 	return R;
 	end
-);
-
-#	if not IsBound(MajAlgCore) then MajAlgCore := IdFunc; fi;
-#	PlusTheClosure := function( R )
-#	  local S, rr, v, time, ar, i, j;
-#		S := MajAlgCore(R);
-#		S.SymbolicSS := [Concatenation(R.SymbolicSS),[]];
-#		rr := [];
-#		for i in [Dimension(R.V)+1..Dimension(R.W)] do
-#			S.MT[i] := []; S.FT[i] := []; od;
-#		for i in [1..Dimension(R.W)] do
-#			for j in [i..Dimension(R.W)] do
-#				if j > Dimension(R.V) or not IsBound(R.MT[i][j]) then
-#					Add(S.SymbolicSS[2],S.SymbolicSS[1]{[i,j]});
-#					v := Dimension(R.W)+Length(S.SymbolicSS[2]);
-#					v := SOB(v,v);
-#					S.MT[i][j] := v;
-#					S.MT[j][i] := v;
-#				fi;
-#		od;od;
-#		SetMajBasisFns(S);
-#		for i in [1..Dimension(S.V)] do for j in [1..Dimension(S.V)] do
-#			S.MT[i][j] := S.MT[i][j] + Zero(S.W); od; od;
-#		SetMajTblFns(S);
-#		rr := List(rr,r->r+Zero(S.W));
-#		Info(Mai,5,"increased closure: dim ",PrintAlgDim(S));
-#	
-#		SetWordInAlg( S,
-#			CreateDictionary(
-#				MakeAlphabet(S),
-#				x -> R.WordInAlg(x) + Zero(S.W) ) );
-#	
-#		if IsBound(R.Reps.EigSps) and not IsEmpty(R.Reps.EigSps) then
-#			time := Runtime();
-#			ar := AddRel(S.Rels,Concatenation(List(
-#				[1..Length(R.Reps.Transpositions)],
-#				function(i) local a;
-#					a := S.WordInAlg(S.Reps.Transpositions[i]);
-#					return Concatenation(List([1..4], j ->
-#						List( R.Reps.EigSps[i][j],x->S.mult(a,x+Zero(S.W))-MajEV[j]*x ) ));
-#				end
-#			)));
-#			Info(Mai,4,"known eigvectors give +",ar," rels (",ElapseStr(time),")");
-#			return UseRels(S);
-#		else return S; fi;
-#	end;
-
+	);
 InstallMethod( FindAxialRep,
 	[HasShape,IsFusion],
 	function(a,b)
 	return fail;
 	end
-	);
-
-InstallMethod( IdealClosure,
-	[IsAxialRep,IsVectorSpace],
-	function( R, V )
-	return CloseUnder( V, Trgp(R), R!.act, R!.V, Mult(R) );
-	end
-	);
+);

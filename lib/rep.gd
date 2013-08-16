@@ -35,3 +35,4 @@ DeclareOperation( "ConvertAxialRep", [IsRecord,IsFusion] );
 DeclareOperation( "ConvertAxialReps", [IsDirectory,IsFusion] );
 
 DeclareOperation( "IdealClosure", [IsAxialRep,IsVectorSpace] );
+DeclareOperation( "Quotient", [IsAxialRep,IsVectorSpace] );
