@@ -32,8 +32,13 @@ InstallMethod( Vector,
 	end
 );
 
+InstallMethod( Ad,
+	[IsAttrVector and HasAlg],
+	v -> Ad(Alg(v))(Vector(v))
+);
+
 InstallMethod( Axis,
-	[IsAlg,IsVector,IsFusion],
+	[IsAlg,IsGeneralizedRowVector,IsFusion],
 	function( A, v, th )
 	local a;
 	a := Objectify(
@@ -49,7 +54,7 @@ InstallMethod( Axis,
 	end
 	);
 	InstallMethod( Axis,
-	[IsAlg,IsVector,IsFusion,IsMultiplicativeElementWithInverse,IsFunction],
+	[IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse,IsFunction],
 	function( A, v, th, g, tau )
 	local a;
 	a := Axis(A,v,th);
@@ -102,29 +107,26 @@ InstallValue( AxisHelper@,
 			InfoPro("mult-stable subspace",time);
 			return Uinf;
 			end
-	,	eigenvectorsMultStabSubsp := function( A, a, Uinf )
-			local time, vv;
-			time := Runtime();
-			if not IsTrivial(Uinf)
-			then vv := List(
-				Eigenvectors(Rationals,List(Basis(Uinf),b->
-					Coefficients(Basis(Uinf),Mult(A)(a,b)) )),
-				v -> LinearCombination(Basis(Uinf),v) );
-			else vv := [];
-			fi;
-			InfoPro("extract eigenvectors",time);
-			return vv;
+	, sortEigSps := function( es, ev, ff )
+			return List(ff,function(f) local i;
+				i := Position(ev,f);
+				if i = fail then return TrivialSubspace(es[1]);
+				else return es[i]; fi; end );
 			end
 	, eigspByMult := function( a )
-			local vv;
-			vv := AxisHelper@.eigenvectorsMultStabSubsp(Alg(a),Vector(a),
-				AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a)));
-			return List( Fields(Fusion(a)),function(f) local ww, V;
-				ww := FilteredPositions(vv,v->Mult(Alg(a))(Vector(a),v)=f*v);
-				V := Subspace(Closure(Alg(a)),vv{ww});
-				vv := vv{Difference([1..Length(vv)],ww)};
-				return V; end
+			local time, Uinf, Uint, sp;
+			time := Runtime();
+			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a));
+			Uint := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
+			sp := AxisHelper@.sortEigSps(
+				List(Eigenspaces(Rationals,Uint),
+					es -> Subspace(Closure(Alg(a)),
+						List(Basis(es),b->LinearCombination(Basis(Uinf),b)))),
+				Eigenvalues(Rationals,Uint),
+				Fields(Fusion(a))
 			);
+			InfoPro("multspace",time);
+			return sp;
 			end
 	, solver := function( fields )
 			local P, mat, solns;
@@ -150,16 +152,20 @@ InstallValue( AxisHelper@,
 			return AxisHelper@.solver(eigv)(vv);
 			end
 	, splitSpace := function( a, V, eigv )
-			local rr, v, r;
+			local time, rr, v, r, es;
+			time := Runtime();
 			rr := [];
 			for v in Basis(V) do
 				r := AxisHelper@.splitVector( a,v,eigv );
 				if r <> fail then Add(rr,r); fi;
 			od;
-			return List( [1..Length(eigv)], i -> Subspace(V,List(rr,r->r[i])) );
+			es := List( [1..Length(eigv)], i -> Subspace(V,List(rr,r->r[i])) );
+			InfoPro("split space",time);
+			return es;
 			end
 	, linEigSp := function( v )
-			local B, vimage, vv, ff, eigspBySplit, eigspByMult;
+			local time, B, vimage, vv, ff, eigspBySplit, eigspByMult;
+			time := Runtime();
 			if HasMiyamoto(v) then
 				B := Basis(Closure(Alg(v)));
 				vimage := List(B,b->Miyamoto(v)(b));
@@ -167,6 +173,7 @@ InstallValue( AxisHelper@,
 					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i] + vimage[i])),
 					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i] - vimage[i]))
 				];
+				InfoPro("V+ & V-",time);
 				ff := [
 					Filtered(Fields(Fusion(v)),f->not f in Miyamoto(Fusion(v))),
 					Miyamoto(Fusion(v))
@@ -181,7 +188,8 @@ InstallValue( AxisHelper@,
 				i -> eigspBySplit[i] + eigspByMult[i]);
 			end
 	, fusionClose := function( a, eigSp )
-			local fields, fminus, fplus, fuse, eigMBs, new, addev, u, v, f, xx, i;
+			local time, fields, fminus, fplus, fuse, eigMBs, new, addev, u, v, f, xx, i;
+			time := Runtime();
 			fields := Fields(Fusion(a));
 			fminus := Set(Miyamoto(Fusion(a)));
 			fplus  := Set(Difference(fields,fminus));
@@ -189,7 +197,7 @@ InstallValue( AxisHelper@,
 
 			eigMBs :=List(eigSp,sp -> MutableBasis(Rationals,Basis(sp),Zero(Closure(Alg(a)))));
 			new := Concatenation(List([1..Length(fields)],i->
-				List(Basis(eigSp[i]),b->[fields[i],b]) ));
+				List(Basis(Intersection(Alg(a),eigSp[i])),b->[fields[i],b]) ));
 
 			addev := function(f,v)
 				local p;
@@ -206,7 +214,7 @@ InstallValue( AxisHelper@,
 				u := new[1];
 				for v in new do
 					f := fuse(u[1],v[1]);
-			#		if f = fminus or f = fplus then continue; fi;		# not sure
+					if f = fminus or f = fplus then continue; fi;
 					xx := AxisHelper@.splitVector(a,Mult(Alg(a))(u[2],v[2]),f);
 					if xx = fail then continue; fi;
 					for i in [1..Length(f)]
@@ -215,7 +223,9 @@ InstallValue( AxisHelper@,
 				Remove(new,1);
 			od;
 
-			return List(eigMBs,mb -> Subspace(Closure(Alg(a)),BasisVectors(mb)));
+			new := List(eigMBs,mb -> Subspace(Closure(Alg(a)),BasisVectors(mb)));
+			InfoPro("fusion",time);
+			return new;
 			end
 	)
 );
@@ -227,13 +237,25 @@ InstallMethod( IsIdempotent,
 InstallMethod( Eigenspaces,
 	[IsAxis],
 	function(v)
+		local adv;
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
-		then return true;
+		then
+			adv := Ad(v);
+			return AxisHelper@.sortEigSps(
+				Eigenspaces(Rationals,adv),
+				Eigenvalues(Rationals,adv),
+				Fields(Fusion(v))
+			);
 		else return AxisHelper@.fusionClose(v,AxisHelper@.linEigSp(v));
 		fi;
 	end
 );
 
+InstallMethod( Relations,
+	[IsAxis],
+	a ->
+	CheckLinearity(a) + CheckDirectity(a) ### not good!
+	);
 InstallMethod( CheckLinearity,
 	[IsAxis],
 	function(a)
@@ -283,12 +305,56 @@ InstallMethod( CheckDirectity,
 		od;
 		Add(II,I);
 	od;
-	Error();
 	S := Sum(II,I->Intersection(I[1],I[2]));
 	if not IsTrivial(S)
 	then AddRelations( Alg(a), S ); fi;
 	InfoPro("directicity",time);
 	return S;
+	end
+	);
+InstallMethod( Check1Dimnlity,
+	[IsAxis],
+	function( a )
+	local time, B, lm, adv, rr;
+	time := Runtime();
+	B := Eigenspaces(a)[Position(Fields(Fusion(a)),1)];
+	if Dimension(B) = 1 then return [TrivialSubspace(B)]; fi;
+	lm := Indeterminate(Rationals);
+	# v := Basis(B)[1] + lm*Basis(B)[2]
+	# any codimension-1 ideal will contain v for some value of lm
+	# if adv has a 0-eigenvalue then v lies in an ideal
+	adv := Ad(Alg(a),B)(Basis(B)[1]) + lm*Ad(Alg(a),B)(Basis(B)[2]);
+	rr := List(RootsOfPolynomial(Determinant(adv)),r->
+		Subspace(B,[Basis(B)[1] + r*Basis(B)[2]]));
+	if Determinant(Ad(Alg(a),B)(Basis(B)[2])) = 0
+	then Add(rr,Subspace(B,Basis(B){[2]})); fi;
+	if not IsEmpty(rr) then
+		#do what? ??
+	fi;
+	InfoPro("1dimnlity",time);
+	return rr;
+	end
+);
+
+InstallMethod( CentralCharge,
+	[IsAttrVector and HasAlg],
+	function( v )
+		if FT(Alg(v)) = fail then return fail;
+		else return 1/2*Form(Alg(v))(Vector(v),Vector(v)); fi;
+	end
+	);
+InstallMethod( Decomposition,
+	[IsIdempotent],
+	function( v )
+		local adv, p, B;
+		if not IsClosed(Alg(v)) then return fail; fi;
+		adv := Ad(v);
+		p := Position(Eigenvalues(Rationals,adv),1);
+		if p = fail then return fail; fi;
+		B := Eigenspaces(Rationals,adv)[p];
+		if Dimension(B) = 1 then return [v];
+		# cite meyer-neutsch for this result!
+		else Error("find decomposition??"); fi;
 	end
 	);
 
