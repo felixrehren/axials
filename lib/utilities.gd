@@ -23,11 +23,14 @@
 # lists: comprehension
 	DeclareOperation( "Recursive", [IsFunction] );
 	DeclareOperation( "All", [IsList] );
+	DeclareOperation( "All", [IsBool] );
 	DeclareOperation( "Any", [IsList] );
+	DeclareOperation( "Any", [IsBool] );
 
 # dict
-	DeclareOperation( "CreateDictionary", [IsCollection,IsFunction] );
-	DeclareOperation( "CreateDictionary", [IsCollection,IsCollection] );
+	DeclareOperation( "CreateDictionary", [IsList,IsFunction] );
+	DeclareOperation( "CreateDictionary", [IsList,IsList] );
+	DeclareOperation( "CreateDictionary", [IsList] );
 
 # actions
 	DeclareOperation( "OnPointsRecursive",
@@ -35,6 +38,7 @@
 
 # this one is tough to name
 	DeclareOperation( "Mult", [IsVectorSpace,IsVectorSpace,IsList] );
+	DeclareGlobalFunction( "AsRat" );
 
 # user
 	DeclareOperation( "UserChoice", [IsString,IsList] );

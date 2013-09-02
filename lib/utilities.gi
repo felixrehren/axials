@@ -123,14 +123,22 @@
 		[IsList],
 		L -> ForAll(L,IdFunc)
 		);
+	InstallMethod( All,
+		[IsBool],
+		IdFunc
+		);
 	InstallMethod( Any,
 		[IsList],
 		L -> ForAny(L,IdFunc)
 		);
+	InstallMethod( Any,
+		[IsBool],
+		IdFunc
+		);
 
 # dict
 	InstallMethod( CreateDictionary,
-		[IsCollection,IsFunction],
+		[IsList,IsFunction],
 		function( dom, f )
 		local d, x;
 		d := NewDictionary(false,true,dom);
@@ -140,7 +148,7 @@
 		end
 		);
 	InstallMethod( CreateDictionary,
-		[IsCollection,IsCollection],
+		[IsList,IsList],
 		function( dom, im )
 		local d, x;
 		d := NewDictionary(false,true,dom);
@@ -148,6 +156,20 @@
 		do AddDictionary(d,dom[x],im[x]); od;
 		return d;
 		end
+		);
+	InstallMethod( CreateDictionary,
+		[IsList],
+		function( pairs )
+		local d, x;
+		d := NewDictionary(false,true,List(pairs,p->p[1]));
+		for x in [1..Length(pairs)]
+		do AddDictionary(d,pairs[x][1],pairs[x][2]); od;
+		return d;
+		end
+		);
+	InstallMethod( ViewString,
+		[IsDictionary],
+		D -> "dictionary"
 		);
 
 # actions
@@ -183,6 +205,31 @@
 			end;
 		end
 		);
+	InstallGlobalFunction( AsRat,
+		function( a )
+			local c, i, l;
+			if a = fail then
+				return fail;
+			elif IsList(a) then
+				l := [];
+				for i in [1..Length(a)] do
+					l[i] := AsRat(a[i]);
+					if l[i] = fail then return fail; fi; #fail asap
+				od;
+				return l;
+			elif IsZero(a) then
+				return 0;
+			elif a in Rationals then
+				return a;
+			elif IsConstantRationalFunction(a) then
+				c := CoefficientsOfUnivariatePolynomial(a);
+				if not Length(c) = 1 then Error("whaa"); fi;#shouldn't happen
+				return c[1];
+			else
+				return fail;
+			fi;
+		end
+	);
 
 # user
 	InstallMethod( UserChoice,
@@ -259,30 +306,6 @@
 #				return x; fi;
 #		od;
 #		return fail;
-#	end;
-#	# tries to cast (list of) numbers to (list of) rationals
-#	AsRat := function( a )
-#		local c, i, l;
-#		if a = fail then
-#			return fail;
-#		elif IsList(a) then
-#			l := [];
-#			for i in [1..Length(a)] do
-#				l[i] := AsRat(a[i]);
-#				if l[i] = fail then return fail; fi; #fail asap
-#			od;
-#			return l;
-#		elif IsZero(a) then
-#			return 0;
-#		elif a in Rationals then
-#			return a;
-#		elif IsConstantRationalFunction(a) then
-#			c := CoefficientsOfUnivariatePolynomial(a);
-#			if not Length(c) = 1 then Error("whaa"); fi;#shouldn't happen
-#			return c[1];
-#		else
-#			return fail;
-#		fi;
 #	end;
 #	# compute Size(Flat(L))
 #	ReLength := function( L )

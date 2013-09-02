@@ -87,15 +87,52 @@ InstallMethod( ShapeStr,
 		JoinStringsWithSeparator(List(Set(S),s->Concatenation(s,mlt(Count(S,t->t=s)))),", " ),")");
 	end
 );
-InstallMethod( ViewObj,
+InstallMethod( ViewString,
 	[HasShape],
 	function( S )
-	Print(
-		ViewString(S),
+	local txt;
+	ResetFilterObj(S,HasShape);
+	txt := ViewString(S);
+	SetFilterObj(S,HasShape);
+	return Concatenation(
+		txt,
 		" shape ",ShapeStr(S)
 		); end
+	);
+	InstallMethod( PrintString,
+	[HasShape],
+	function( S )
+	local txt;
+	ResetFilterObj(S,HasShape);
+	txt := PrintString(S);
+	SetFilterObj(S,HasShape);
+	Remove(txt);Remove(txt);
+	txt := Concatenation(txt,
+		",\n\t",PrintString(Shape(S)),"\n)");
+	return txt;
+	end
 );
 
+InstallMethod( TranspositionGroup,
+	[IsGroup,IsCollection,IsList],
+	function( G, D, Sh )
+	if not IsShape(Sh) then return fail; fi;
+	return TrgpNC(G,List(Orbits(G,D),Representative),Sh);
+	end
+	);
+	InstallMethod( TrgpNC,
+	[IsGroup,IsCollection,IsList],
+	function( G, D, Sh )
+	local H;
+	H := DuplicateGroup(G);
+	ResetFilterObj( H, HasTranspositions );
+	SetTranspositions(H,D);
+	SetShape(H,Sh);
+	ResetFilterObj( H, HasAutomorphismGroup );
+	Unbind( H!.AutomorphismGroup ); # forcibly remove
+	return H;
+	end
+	);
 InstallMethod( IsIsomOfShapes,
 	[HasShape,HasShape,IsMapping],
 	function( T,U,f )
@@ -109,6 +146,11 @@ InstallMethod( IsIsomOfShapes,
 				OnSets) <> fail)]
 		); end
 	);
+	InstallMethod( IsIsomOfShapes,
+	[IsMapping],
+	function( f )
+	return IsIsomOfShapes(Source(f),Range(f),f); end
+	);
 InstallMethod( AllShapeIsomClasses,
 	[HasShape,HasShape],
 	function( T, U )
@@ -119,13 +161,14 @@ InstallMethod( AreIsomorphicShapes,
 	[HasShape,HasShape],
 	function( T, U )
 	if Sorted(Shape(T)) <> Sorted(Shape(U)) then return false; fi;
-	return ForAny(IsomorphismClassesTrgps(T,U),f->IsIsomOfShapes(T,U,f) );
+	return ForAny(IsomorphismClassesTrgps(T,U),IsIsomOfShapes);
 	end
 );
 
 InstallMethod( Subshape,
 	[HasShape,IsTrgp],
 	function( S, T )
+	ResetFilterObj(T,HasShape);
 	SetShape(T,
 		List( Pairs(T),
 			p -> Shape(S)[FirstPosition(Pairs(S),
