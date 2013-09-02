@@ -5,47 +5,20 @@
 
 InstallMethod( Fusion,
 	[IsRat,IsList,IsList,IsString],
-	function( c, fields, fusiontbl, Tag )
-	return Objectify(
-		TypeFusion@,
-		rec( 
-			cc := c,
-			fields := fields,
-			tbl := fusiontbl,
-			fuse := function(f,g)
+	function( c, fields, fusiontbl, tag )
+		local R;
+		R := rec( tbl := fusiontbl );
+		ObjectifyWithAttributes(
+			R, TypeFusion@,
+			CentralCharge, c,
+			Fields, fields,
+			Fuse, function(f,g)
 				return fusiontbl[Position(fields,f)][Position(fields,g)]; end,
-			tag := Tag
-		)
-	);
+			Tag, tag
+		);
+		return R;
 	end
 );
-	InstallMethod( CentralCharge,
-		[IsFusion],
-		T -> T!.cc
-	);
-	InstallMethod( Tag,
-		[IsFusion],
-		T -> T!.tag
-	);
-	InstallMethod( Fields,
-		[IsFusion],
-		T -> T!.fields
-	);
-	InstallMethod( Fuse,
-		[IsFusion],
-		function(T)
-		return
-			function(f,g)
-			return T!.fuse(f,g);
-			end;
-		end
-		);
-	InstallMethod( Tag,
-		[IsFusion],
-		function(T)
-		return T!.tag;
-		end
-		);
 	InstallMethod( ViewString,
 		[IsFusion],
 		T -> Concatenation(
@@ -70,16 +43,27 @@ InstallMethod( Fusion,
 			"\t\"",Tag(T),"\"\n",
 			")"
 		)
+	);
+InstallMethod( Subfusion,
+	[IsFusion,IsList,IsString],
+	function( F, ff, tag )
+		local pos;
+		pos := List(ff, f-> Position(Fields(F),f));
+		return Fusion(
+			CentralCharge(F),
+			ff,
+			List(F!.tbl{pos}{pos},r->List(r,e->Filtered(e,f->f in ff))),
+			tag );
+	end
 );
-
 InstallMethod( Miyamoto,
 	[IsFusion],
 	function( th )
 	local part0, part1, f;
-	part0 := Set(List(Fields(th),f->Fuse(th)(f,f)));
+	part0 := Union(List(Fields(th),f->Fuse(th)(f,f)));
 	part1 := Difference(Fields(th),part0);
 	while true do
-		f := FirstPosition(part1,f->not ForAll(part0,g->Fuse(th)(f,g) in part1));
+		f := FirstPosition(part1,f->ForAny(part0,g->not IsSubset(part1,Fuse(th)(f,g))));
 		if f = fail then return part1;
 		else
 			Add(part0,part1[f]);
@@ -87,6 +71,16 @@ InstallMethod( Miyamoto,
 		fi;
 	od;
 	end
+);
+InstallMethod( MiyamotoFixedFusion,
+	[IsFusion],
+	function( th )
+		local m;
+		m := Miyamoto(th);
+		if m = [] then return th;
+		else return Subfusion( th, Filtered(Fields(th),f->not f in m),
+			Concatenation( Tag(th),"-mfix" ) ); fi;
+		end
 );
 
 InstallMethod( VirasoroFusion,
@@ -203,3 +197,33 @@ InstallMethod( Orders,
 	return Set(Sak!.orders);
 	end
 );
+
+
+InstallValue( MajoranaSakuma,
+	Sakuma(
+	[ [2,"A"],
+		[2,"B"],
+		[3,"A"],
+		[3,"C"],
+		[4,"A"],
+		[4,"B"],
+		[5,"A"],
+		[6,"A"] ],
+	[ [1,0,0,0,0,1,0,1],
+		[0,1,0,0,1,0,0,0],
+		[0,0,1,0,0,0,0,1],
+		[0,0,0,1,0,0,0,0],
+		[0,0,0,0,1,0,0,0],
+		[0,0,0,0,0,1,0,0],
+		[0,0,0,0,0,0,1,0],
+		[0,0,0,0,0,0,0,1] ] )
+	);
+InstallValue( MajoranaFusion, VirasoroFusion(4,3) );
+InstallMethod( MajoranaShapes,
+	[IsGroup],
+	G -> Shapes(G,MajoranaSakuma)
+	);
+	InstallMethod( MajoranaShapes,
+	[IsTrgp],
+	G -> Shapes(G,MajoranaSakuma)
+	);
