@@ -6,9 +6,7 @@
 InstallMethod( DirectoryFusion,
 	[IsString],
 	function( str )
-	return Directory(Concatenation(
-		Filename(DirectoriesPackageLibrary("m-calculator",""),""),
-		"data/",str ));
+	return Directory(Filename(DirectoriesPackageLibrary("axials","data"),str));
 	end
 	);
 	InstallMethod( DirectoryFusion,
@@ -30,8 +28,8 @@ InstallMethod( GetAxialRep,
 	local file;
 	file := Filename( DirectoryFusion(th), G );
 	if IsReadableFile(file)
-	then return ReadAsFunction(file);
-	else return fail; fi;
+	then return ReadAsFunction(file)();
+	else return []; fi;
 	end
 	);
 	InstallMethod( GetAxialRep,
@@ -44,17 +42,21 @@ InstallMethod( GetAxialRep,
 	[IsString,IsTrgp],
 	function( th, T )
 	return Filtered(
-		GetAxialRep(th,T),
+		GetAxialRep(th,StructureDescription(T:short)),
 		R -> AreIsomorphicTrgp(Trgp(R),T) );
 	end
 	);
 	InstallMethod( GetAxialRep,
 	[IsString,HasShape],
 	function( th, S )
-	return Filtered(
-		GetAxialRep(th,S),
+	local ff;
+	ff := Filtered(
+		GetAxialRep(th,StructureDescription(S:short)),
 		R -> HasShape(Trgp(R)) ## always, right?
 			and AreIsomorphicShapes(Trgp(R),S) );
+	if Length(ff)>1 then Error("handle more than one alg, same shape");
+	elif Length(ff)=1 then return ff[1];
+	else return ff; fi;
 	end
 	);
 	InstallMethod( GetAxialRep,
@@ -64,15 +66,9 @@ InstallMethod( GetAxialRep,
 	end
 	);
 	InstallMethod( GetAxialRep,
-	[IsFusion,IsTrgp],
-	function( th, T )
-	return GetAxialRep( Tag(th), T );
-	end
-	);
-	InstallMethod( GetAxialRep,
-	[IsFusion,HasShape],
-	function( th, S )
-	return GetAxialRep( Tag(th), S );
+	[IsFusion,IsString],
+	function( th, G )
+	return GetAxialRep( Tag(th), G );
 	end
 );
 
@@ -80,6 +76,9 @@ InstallMethod( WriteAxialRep,
 	[IsAxialRep,IsBool],
 	function( R, OW )
 	local rr, p, ans;
+	if Symmetries( R ) <> Trgp( R )
+	then Print("WARNINGWARNIWAR... extra symmetries"); Error(); fi;
+
 	rr := GetAxialRep( Fusion(R), StructureDescription(Trgp(R):short) );
 	p := FirstPosition(rr,r->AreIsomorphicShapes(Trgp(r),Trgp(R)));
 	if p = fail then Add(rr,R);
@@ -94,8 +93,8 @@ InstallMethod( WriteAxialRep,
 	fi;
 	PrintTo(
 		Filename(DirectoryFusion(Fusion(R)),StructureDescription(Trgp(R):short)),
-		Concatenation( "return [",
-			JoinStringsWithSeparator(List(rr,PrintString),"\n\n"),"];")
+		Concatenation( "return [\n",
+			JoinStringsWithSeparator(List(rr,PrintString),",\n\n"),"\n];")
 	);
 	end
 	);
