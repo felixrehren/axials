@@ -6,9 +6,9 @@
 InstallValue( AlgHelper@, rec(
 		emptyAlg := function(dim)
 			local V;
-			V := Rationals^dim;
+			V := Field@^dim;
 			SetMT(V,List([1..dim],d->[]));
-			SetClosure(V,Rationals^dim);
+			SetClosure(V,Field@^dim);
 			return V;
 			end
 	, trivialAlg := ~.emptyAlg(0)
@@ -29,9 +29,9 @@ InstallValue( AlgHelper@, rec(
 			end
 	, quoBasisPos := function( Q )
 			local K,l,B,s,v,w;
-			K := MutableBasis( Rationals, [], Zero(Source(Q)) );
+			K := MutableBasis( Field@, [], Zero(Source(Q)) );
 			l := [1..Dimension(Source(Q))];
-			B := Basis(VectorSpace(Rationals,List(Basis(Kernel(Q)),Reversed)));
+			B := Basis(VectorSpace(Field@,List(Basis(Kernel(Q)),Reversed)));
 			for s in [Dimension(Source(Q)),Dimension(Source(Q))-1..1] do
 				v := Basis(Source(Q))[s];
 				w := v - Reversed(SiftedVector(B,Reversed(v)));
@@ -54,10 +54,10 @@ InstallValue( AlgHelper@, rec(
 			p := First([1..Length(er)/2],p -> 
 				 not IsEmpty(er[2*p-1]) and er[2*p-1][2]=1);
 			if p = fail then return false; fi;
-			x := Indeterminate(Rationals,er[2*p-1][1]);
+			x := Indeterminate(Field@,er[2*p-1][1]);
 			s := x - r/er[2*p];
 			return Recursive(function(e)
-				if e in Rationals
+				if e in Field@
 				then return e; 
 				else return Value(e,[x],[s]); fi;
 				end);
@@ -74,7 +74,7 @@ InstallMethod( Alg,
 	InstallMethod( Alg,
 	[IsPosInt,IsList],
 	function( dim, mt )
-	return Alg(Rationals^dim,Rationals^dim,mt);
+	return Alg(Field@^dim,Field@^dim,mt);
 	end
 	);
 	InstallMethod( Alg,
@@ -90,7 +90,7 @@ InstallMethod( Alg,
 	[IsPosInt,IsPosInt,IsList],
 	function( dim, cl, mt )
 	local W, V;
-	W := Rationals^cl;
+	W := Field@^cl;
 	V := Subspace(W,Basis(W){[1..dim]});
 	return Alg( V, W, mt );
 	end
@@ -107,12 +107,18 @@ InstallMethod( Alg,
 	);
 	InstallMethod( PrintString,
 	[IsAlg],
-	A -> Concatenation(
+	function(A)
+	local txt;
+	ResetFilterObj(A,HasMT);
+	txt := PrintString(A);
+	SetFilterObj(A,HasMT);
+	return Concatenation(
 		"Alg(\n",
-			"\tRationals^",String(Dimension(A)),",\n",
+			"\t",txt,",\n",
 			"\t",String(A!.MT),"\n",
 		")"
-	)
+	);
+	end
 	);
 	InstallMethod( IsClosed,
 	[IsAlg],
@@ -147,7 +153,7 @@ InstallMethod( CloseUnderAct,
 	function( V, G, act )
 		local time, mb, vs, newvs, g, v, w, S;
 		time := Runtime();
-		mb := MutableBasis( Rationals, Basis(V), Zero(V) );
+		mb := MutableBasis( Field@, Basis(V), Zero(V) );
 		vs := BasisVectors(mb);
 		while not IsEmpty(vs) do
 			newvs := [];
@@ -162,7 +168,7 @@ InstallMethod( CloseUnderAct,
 			od;
 			vs := newvs;
 		od;
-		S := VectorSpace( Rationals, BasisVectors(mb), Zero(V) );
+		S := VectorSpace( Field@, BasisVectors(mb), Zero(V) );
 		InfoPro("orbiting",time);
 		return S;
 		end
@@ -172,10 +178,10 @@ InstallMethod( ImageUnderMult,
 	function( V, U, A )
 		local time, mb, v, u, S;
 		time := Runtime();
-		mb := MutableBasis( Rationals, [], Zero(V) );
+		mb := MutableBasis( Field@, [], Zero(V) );
 		for v in Basis(Intersection(A,V)) do for u in Basis(Intersection(A,U))
 		do CloseMutableBasis( mb, Mult(A)(v,u) ); od; od;
-		S := VectorSpace( Rationals, BasisVectors(mb), Zero(V) );
+		S := VectorSpace( Field@, BasisVectors(mb), Zero(V) );
 		InfoPro("multiplying",time);
 		return S;
 		end
@@ -185,7 +191,7 @@ InstallMethod( ImageUnderMult,
 	function( v, U, A )
 	if not v in A then return TrivialSubspace(A);
 	else return
-		VectorSpace(Rationals,List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
+		VectorSpace(Field@,List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
 	fi;
 	end
 	);
@@ -240,7 +246,7 @@ InstallMethod( IncreaseClosure,
 	[IsAlg],
 	function( A )
 	local mt, n, i, j, z;
-	if not HasClosure(A) then SetClosure(A,Rationals^Dimension(A)); fi;
+	if not HasClosure(A) then SetClosure(A,Field@^Dimension(A)); fi;
 	n := Dimension(Closure(A));
 	mt := List([1..Dimension(Closure(A))],i->[]);
 	for i in [1..Dimension(Closure(A))] do
@@ -284,7 +290,7 @@ InstallMethod( Identity,
 	[IsAlg and IsClosed],
 	function( A )
 	local x, rr, i;
-	x := List( [1..Dimension(A)], i -> Indeterminate( Rationals, i ) );
+	x := List( [1..Dimension(A)], i -> Indeterminate( Field@, i ) );
 	rr := Concatenation(List( Basis(A), b -> Mult(A)(b,x) - b ));
 	for i in [1..Length(rr)] do
 		x := List(x,AlgHelper@.relToFn(rr[i]));
@@ -296,7 +302,7 @@ InstallMethod( Identity,
 
 InstallMethod( Form,
 	[IsAlg and HasFT],
-	A -> Mult( A, Rationals, A!.FT )
+	A -> Mult( A, Field@, A!.FT )
 	);
 InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],

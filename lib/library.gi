@@ -73,22 +73,27 @@ InstallMethod( GetAxialRep,
 );
 
 InstallMethod( WriteAxialRep,
-	[IsAxialRep,IsBool],
-	function( R, OW )
+	[IsAxialRep],
+	function(R)
 	local rr, p, ans;
 	if Symmetries( R ) <> Trgp( R )
-	then Print("WARNINGWARNIWAR... extra symmetries"); Error(); fi;
+	then Error("WARNINGWARNIWAR... extra symmetries"); fi;
+	if Field@ <> Rationals
+	then Error("WARNINGWARNIWAR... not over rationals"); fi;
+
 
 	rr := GetAxialRep( Fusion(R), StructureDescription(Trgp(R):short) );
 	p := FirstPosition(rr,r->AreIsomorphicShapes(Trgp(r),Trgp(R)));
 	if p = fail then Add(rr,R);
 	else
-		if OW then rr[p] := R;
-		else
+		if ValueOption("overwrite") = true then rr[p] := R;
+		elif ValueOption("overwrite") = fail then
 			ans := UserChoice("such a rep already exists, overwrite? 1 = yes, 2 = no",
 				[1,2]);
 			if ans = 1 then rr[p] := R;
 			else return true; fi;
+		elif ValueOption("overwrite") <> false then
+			Error("you gave me garbled parameters. ~_~");
 		fi;
 	fi;
 	PrintTo(
@@ -96,12 +101,6 @@ InstallMethod( WriteAxialRep,
 		Concatenation( "return [\n",
 			JoinStringsWithSeparator(List(rr,PrintString),",\n\n"),"\n];")
 	);
-	end
-	);
-	InstallMethod( WriteAxialRep,
-	[IsAxialRep],
-	function(R)
-	WriteAxialRep(R,false);
 	end
 );
 

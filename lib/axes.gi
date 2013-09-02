@@ -119,10 +119,10 @@ InstallValue( AxisHelper@,
 			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a));
 			Uint := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
 			sp := AxisHelper@.sortEigSps(
-				List(Eigenspaces(Rationals,Uint),
+				List(Eigenspaces(Field@,Uint),
 					es -> Subspace(Closure(Alg(a)),
 						List(Basis(es),b->LinearCombination(Basis(Uinf),b)))),
-				Eigenvalues(Rationals,Uint),
+				Eigenvalues(Field@,Uint),
 				Fields(Fusion(a))
 			);
 			InfoPro("multspace",time);
@@ -130,16 +130,17 @@ InstallValue( AxisHelper@,
 			end
 	, solver := function( fields )
 			local P, mat, solns;
-			P := PolynomialRing(Rationals,
-				List([1..Length(fields)],i->Indeterminate(Rationals,i)));
+			P := PolynomialRing(Field@,
+				List([1..Length(fields)],i->Indeterminate(Field@,i)));
 			mat := List([1..Length(fields)],
 				i -> Concatenation( List(fields,f->f^(i-1)), [P.(i)] )
 			) * One(P);
 			mat := Independify(SemiEchelonMatDestructive(mat).vectors,
 				[1..Length(fields)]);
 			solns := List(mat,m->m[Length(fields)+1]);
-			return xx -> List(solns,s->Value(s,IndeterminatesOfPolynomialRing(P),xx));
-			end
+			return xx->List(solns,s->Value(s,IndeterminatesOfPolynomialRing(P),xx+0));
+			end 	### +0 changes the internal representation of the object,
+						### which is necessary for the function to work. (bug?)
 	, splitVector := function( a, v, eigv )
 			local vv, i, eigvmat;
 			vv := [v];
@@ -195,7 +196,7 @@ InstallValue( AxisHelper@,
 			fplus  := Set(Difference(fields,fminus));
 			fuse := Fuse(Fusion(a));
 
-			eigMBs :=List(eigSp,sp -> MutableBasis(Rationals,Basis(sp),Zero(Closure(Alg(a)))));
+			eigMBs :=List(eigSp,sp -> MutableBasis(Field@,Basis(sp),Zero(Closure(Alg(a)))));
 			new := Concatenation(List([1..Length(fields)],i->
 				List(Basis(Intersection(Alg(a),eigSp[i])),b->[fields[i],b]) ));
 
@@ -242,8 +243,8 @@ InstallMethod( Eigenspaces,
 		then
 			adv := Ad(v);
 			return AxisHelper@.sortEigSps(
-				Eigenspaces(Rationals,adv),
-				Eigenvalues(Rationals,adv),
+				Eigenspaces(Field@,adv),
+				Eigenvalues(Field@,adv),
 				Fields(Fusion(v))
 			);
 		else return AxisHelper@.fusionClose(v,AxisHelper@.linEigSp(v));
@@ -319,7 +320,7 @@ InstallMethod( Check1Dimnlity,
 	time := Runtime();
 	B := Eigenspaces(a)[Position(Fields(Fusion(a)),1)];
 	if Dimension(B) = 1 then return [TrivialSubspace(B)]; fi;
-	lm := Indeterminate(Rationals);
+	lm := Indeterminate(Field@);
 	# v := Basis(B)[1] + lm*Basis(B)[2]
 	# any codimension-1 ideal will contain v for some value of lm
 	# if adv has a 0-eigenvalue then v lies in an ideal
@@ -349,9 +350,9 @@ InstallMethod( Decomposition,
 		local adv, p, B;
 		if not IsClosed(Alg(v)) then return fail; fi;
 		adv := Ad(v);
-		p := Position(Eigenvalues(Rationals,adv),1);
+		p := Position(Eigenvalues(Field@,adv),1);
 		if p = fail then return fail; fi;
-		B := Eigenspaces(Rationals,adv)[p];
+		B := Eigenspaces(Field@,adv)[p];
 		if Dimension(B) = 1 then return [v];
 		# cite meyer-neutsch for this result!
 		else Error("find decomposition??"); fi;

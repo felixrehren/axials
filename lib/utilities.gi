@@ -70,7 +70,7 @@
 		[IsList],
 		L -> Sorted(L,IdFunc) );
 	InstallMethod( RecursiveSorted,
-		[IsList],
+		[IsObject],
 		function( X )
 		if IsList(X)
 		then return Sorted(List(X,RecursiveSorted));
@@ -121,7 +121,9 @@
 		end);
 	InstallMethod( All,
 		[IsList],
-		L -> ForAll(L,IdFunc)
+		L -> ForAll(L,function(l)
+			if IsList(l) then return All(l);
+			else return l; fi; end)
 		);
 	InstallMethod( All,
 		[IsBool],

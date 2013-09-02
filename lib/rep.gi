@@ -3,25 +3,24 @@
 #	create implementation
 #
 
-InstallValue( AxialRepHelper@,
-	rec(
+InstallValue( AxialRepHelper@, rec(
 		getSubreps := function( T,G,th )
 			local sr, ss, rr, misspos, prespos, ans, m, s, ff;
 
 			sr := [];
 			ss := MaximalSubshapes(T);
-			rr := List(ss,s->GetAxialRep(s,th));
-			misspos := FilteredPositions(rr,r->r=fail);
-			prespos := FilteredPositions(rr,r->r<>fail);
+			rr := List(ss,s->GetAxialRep(th,s));
+			misspos := FilteredPositions(rr,r->r=[]);
+			prespos := FilteredPositions(rr,r->r<>[]);
 
 			if ForAny(rr{prespos},IsTrivial) then
-				Info(mai,"nonexistent subAlgebras\n",
+				Info(AxRepInfo,"nonexistent subAlgebras\n",
 					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),ViewString),",\n"));
 				return fail; fi;
 
 			if not IsEmpty(misspos) then
 				ans := UserChoice( Concatenation(
-						"missing Algebras for\n",
+						"missing algebras for\n",
 						JoinStringsWithSeparator(List(ss{misspos},ViewString),",\n"),"\n",
 						"what would you like to do?\n",
 						"1 = quit, ",
@@ -33,25 +32,29 @@ InstallValue( AxialRepHelper@,
 				);
 				if ans = 1 then return fail;
 				elif ans = 2 then
-					FindAxialReps(List(misspos,m->AsSmallerPermTrgp(ss[m])));
+					#FindAxialReps(List(misspos,m->AsSmallerPermTrgp(ss[m])));
+					## we don't know the sakuma!
 					for m in misspos
 					do rr[m] := GetAxialRep(ss[m],th); od;
 				elif ans = 3 or ans = 4 then
 					misspos := Difference([1..Length(ss)],misspos);
 					if ans = 3 then
 						for s in ss{misspos}
-						do Append(sr, AxialRepHelper@.getSubreps(s,G)); od;
+						do Append(sr, AxialRepHelper@.getSubreps(s,G,th)); od;
 					fi;
 					ss := ss{misspos};
 					rr := rr{misspos};
 				fi;
 			fi;
 			
-			ff := List([1..Length(rr)],i->AllShapeIsomClasses(rr[i],ss[i]));
+			ff := List([1..Length(rr)],i->AllShapeIsomClasses(Trgp(rr[i]),ss[i]));
 			Assert(1,ForAll(ff,f->ForAll(f,g->g^G =f[1]^G)),
 				"we only want one homomorphism up to G, otherwise need extra methods to deal with this"); # e.g. L3(3)?
 			ff := List(ff,Representative);
-			Append(sr,List([1..Length(rr)],i->ImageX(rr[i],ff[i])));
+			Append(sr,List([1..Length(rr)],i->Im(ff[i],rr[i])));
+	#		sr := List(sr,r-> Subrepresentation(r,
+	#			Stabiliser(G,Union(List(Transpositions(Trgp(r)),t->t^Trgp(r))),OnSets))
+	#		);
 			return sr;
 			end
 	,	closedAlphabet := function(G,aa)
@@ -65,62 +68,99 @@ InstallValue( AxialRepHelper@,
 			end
 	, canonRep := function( R, x )
 			if IsList(x) then
-				return Recursive(i->Basis(R)[i])(
+				return Recursive(i->Basis(Alg(R))[i])(
 					RecursiveSorted(Recursive(y->LastNonzeroPos(R!.map(y)))(x)) );
-			else return Basis(R)[LastNonzeroPos(R!.map(x))]; fi;
+			else return Basis(Alg(R))[LastNonzeroPos(R!.map(x))]; fi;
 			end
 	,	canonSetPos := function( ss, x )
 			local powers;
 			powers := List([1..Order(x)-1],n->x^n);
-			return First(ss,s->s in powers);
+			return FirstPosition(ss,s->s in powers);
 			end
 	,	canonSet := function( ss, x )
+			local powers, f;
 			if IsList(x) then
 				return Recursive(i->ss[i])(
 					RecursiveSorted(Recursive(y->AxialRepHelper@.canonSetPos(ss,y))(x)) );
-			else return ss[AxialRepHelper@.canonSetPos(ss,x)]; fi;
+			else
+				powers := List([1..Order(x)-1],n->x^n);
+				f := First(ss,s->s in powers);
+				if f = fail then return x;
+				else return f; fi;
+			fi;
 			end
-	, inSubrep := function( R, S )
-			local tt, bb, alph, dict, s, A, rr, c, pos, emb, al, pstnsR, elmtsS, i, j, v, NewRep;
-			tt := Difference(S!.ss,Alphabet(R));
-			bb := Concatenation(R!.ss,tt);
+	, inSubrep := function( R, S, sym )
+			local tt, bb, alph, dict, s, A, mt, i, rr, c, pos, emb, al, pstnsR, elmtsS, j, v, NewRep;
+			tt := Difference(List(SpanningWords(S),s->AxialRepHelper@.canonSet(Alphabet(R),s)),Alphabet(R));
+			bb := Concatenation(SpanningWords(R),tt);
 			alph := AxialRepHelper@.closedAlphabet(Trgp(R),bb);
 			dict := NewDictionary(false,true,alph);
 			for s in Alphabet(R) do AddDictionary(dict,s,R!.map(s)); od;
 			A := Alg(R);
+			mt := List(A!.MT,ShallowCopy);
+			for i in [Length(SpanningWords(R))+1..Length(bb)]
+			do mt[i] := []; od;
 			rr := [];
 
 			for c in List( RightTransversal(Trgp(R),Trgp(S)),
 								t -> ConjugatorIsomorphism(Trgp(R),t) ) do
-				tt := Difference((S!.ss)^c,AxialRepHelper@.closedAlphabet(Trgp(R),bb));
-				bb := Concatenation(bb,List(tt,t->AxialRepHelper@.canonRep(R,t)));
-				A := AlgHelper@.incBasis(A,Length(tt));
+				tt := Difference( 
+					List(Recursive(s->s^c)(SpanningWords(S)),
+						t->AxialRepHelper@.canonSet(bb,t)),
+					bb );
+				bb := Concatenation(bb,tt);
+				A := Field@^Length(bb);
+				for i in [Length(bb)-Length(tt)..Length(bb)]
+				do mt[i] := []; od;
 
-				pos := List((S!.ss)^c,s->Position(bb,AxialRepHelper@.canonSet(bb,s)));
-				emb := List( [1..Dimension(S)], i -> Basis(A)[pos[i]] );
+				pos := List(Recursive(s->s^c)(SpanningWords(S)),
+					s->Position(bb,AxialRepHelper@.canonSet(bb,s)));
+				emb := List( [1..Dimension(Alg(S))], i -> Basis(A)[pos[i]] );
 				for s in AxialRepHelper@.closedAlphabet(Trgp(R),tt) do
 					AddDictionary(dict,s,S!.map(s)*emb); od;
 
-				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonRep(R,s^c)));
+				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonSet(Alphabet(R),s^c)));
 				pstnsR := FilteredPositions(bb,s->All(Recursive(x->x in al)(s)));
 				elmtsS := List(pstnsR,i->
 					S!.map(Recursive(x->First(Alphabet(S),a->a^c=x))(bb[i])) );
 
 				for i in [1..Length(pstnsR)] do
-					for j in [i..Length(pstnsR)] do
-						v := Mult(S)(elmtsS[i],elmtsS[j])*emb;
-						if IsBound(R!.mt[pstnsR[i]][pstnsR[j]])
-						then Add(rr,R!.mt[pstnsR[i]][pstnsR[j]] - v);
-						else R!.mt[pstnsR[i]][pstnsR[j]] := v;
-								 R!.mt[pstnsR[j]][pstnsR[i]] := v; fi;
+					for j in [1..i] do
+						v := Mult(Alg(S))(elmtsS[i],elmtsS[j])*emb;
+						if IsBound(mt[pstnsR[i]][pstnsR[j]])
+						then Add(rr,mt[pstnsR[i]][pstnsR[j]] - v);
+						else mt[pstnsR[i]][pstnsR[j]] := v; fi;
 					od;
 				od;
 			od;
-			NewRep := AxialRepHelper@.makeRep( Fusion(R), Trgp(R), A, s->LookupDictionary(dict,s), bb );
+			A := AlgHelper@.incBasis(Alg(A,mt),0);
+			NewRep := AxialRep( Fusion(R), Trgp(R), Alg(A,mt), dict, bb );
 			SetAlphabet(NewRep,alph);
-			AddRelations(Alg(NewRep),
-				Relations(Alg(R)) + Subspace(Basis(NewRep),rr));
+			rr := Subspace(A,rr);
+			if HasRelations(Alg(R))
+			then SetRelations(Alg(NewRep),rr+Subspace(Closure(Alg(NewRep)),List(Basis(Relations(Alg(R))),b->b+Zero(Alg(NewRep))),Zero(Alg(NewRep))));
+			else SetRelations(Alg(NewRep),rr); fi;
 			return NewRep;
+			end
+	, startAxialRep :=	function( T, fus, sym )
+			local dim, mt, i, A, ss, dict, R, sr, s;
+			dim := Sum(Transpositions(T),t->OrbitLength(T,t));
+			mt := List([1..dim],i -> []);
+			for i in [1..dim] do mt[i][i] := KroneckerVector(i,dim); od;
+			A := Alg(dim,mt);
+			ss := Immutable(Union(List(Transpositions(T),t->Orbit(T,t))));
+			ss := Sorted(ss); # how to make use of sortedness?
+			dict := CreateDictionary(ss,s->Basis(A)[Position(ss,s)]);
+			R := AxialRep( fus, T, A, dict, ss );
+			SetSymmetries(R,sym);
+
+			sr := AxialRepHelper@.getSubreps(T,sym,fus);
+			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
+
+			return R;
+			end
+	, trivialAxialRep := function( T, fus )
+			return AxialRep( fus, T, AlgHelper@.trivialAlg, CreateDictionary([],IdFunc), [] );
 			end
 	)
 );
@@ -128,26 +168,28 @@ InstallValue( AxialRepHelper@,
 InstallMethod( AxialRep,
 	[IsFusion,IsTrgp,IsAlg,IsDictionary,IsList],
 	function( Th, T, A, d, ss )
-	local map;
+	local map, R;
 	map := function(x)
 		if IsList(x) then return Mult(A)(map(x[1]),map(x[2]));
 		else return LookupDictionary(d,x); fi; end;
-	return Objectify( 
-		TypeAxialRep@,
-		rec(
-			Fusion := Th,
-			trgp := T,
-			Alg := A,
-			map := map,
-			ss := ss,
-			act := function(om,g)
-				local nz, ws;
-				if IsZero(om) then return om; fi;
-				nz := Filtered([1..Length(om)],i->not IsZero(om[i]));
-				ws := List(ss{nz},w->OnPointsRecursive(w,g));
-				return Sum([1..Length(nz)],i->om[nz[i]]*map(ws[i]));
-				end
-		) );
+	R := rec(
+		map := map,
+		act := function(om,g)
+			local nz, ws;
+			if IsZero(om) then return om; fi;
+			nz := Filtered([1..Length(om)],i->not IsZero(om[i]));
+			ws := List(ss{nz},w->OnPointsRecursive(w,g));
+			return Sum([1..Length(nz)],i->om[nz[i]]*map(ws[i]));
+			end
+	);
+	ObjectifyWithAttributes(
+		R, TypeAxialRep@,
+		Fusion, Th,
+		Trgp, T,
+		Alg, A,
+		SpanningWords, ss
+	);
+	return R;
 	end
 	);
 	InstallMethod( AxialRep,
@@ -157,30 +199,69 @@ InstallMethod( AxialRep,
 		dict := NewDictionary(false,true,List(f,x->x[1]));
 		for i in [1..Length(f)]
 		do AddDictionary(dict,f[i][1],f[i][2]); od;
-		return AxialRep( Th, T, A, x -> LookupDictionary(dict,x), ss );
+		return AxialRep( Th, T, A, dict, ss );
 	end
+	);
+	InstallMethod( IsTrivial,
+	[IsAxialRep],
+	R -> IsTrivial(Alg(R))
 );
 
-InstallMethod( Alg,
+InstallMethod( Symmetries,
 	[IsAxialRep],
-	R -> R!.Alg
+	R -> Trgp(R)
 	);
-	InstallMethod( Trgp,
+	InstallMethod( IsTrivial,
 	[IsAxialRep],
-	R -> R!.trgp
-	);
-	InstallMethod( Basis,
+	R -> IsTrivial(Alg(R))
+);
+
+InstallMethod( Alphabet,
 	[IsAxialRep],
-	R -> Basis(R!.V)
+	R -> AxialRepHelper@.closedAlphabet(Trgp(R),SpanningWords(R))
 	);
-	InstallMethod( Alphabet,
+	InstallMethod( InWords,
 	[IsAxialRep],
-	R -> AxialRepHelper@.closedAlphabet(Trgp(R),R!.ss)
+	function(R)
+		local f;
+		f := function(w)
+			if IsList(w)
+			then return Concatenation("(",f(w[1]),"*",f(w[2]),")");
+			else return String(w); fi; end;
+		return w -> JoinStringsWithSeparator(
+			List(FilteredPositions(w,x->not IsZero(x)),
+				function(i) local s, rat, rep, c;
+					rat := AsRat(w[i]);
+					if rat = fail then
+						rep := ExtRepPolynomialRatFun(w[i]);
+						if SignInt(rep[Length(rep)]) = 1 then s := "+";
+						else s := ""; fi;
+						c := "";
+					else
+						if SignInt(rat) = 1 then s := "+";
+						else s := ""; fi;
+						if IsOne(rat) then c := "";
+						else c := String(rat); fi;
+					fi;
+					return Concatenation(
+						s,
+						c,
+						f(SpanningWords(R)[i])
+					); end),
+			" ");
+		end
 	);
-	InstallMethod( Fusion,
+	InstallMethod( FromWord,
 	[IsAxialRep],
-	R -> R!.Fusion
+	function(R)
+		local f;
+		f := function(w)
+			if IsList(w) then return Mult(Alg(R))(f(w[1]),f(w[2]));
+			else return R!.map(w); fi; end;
+		return f;
+		end
 	);
+	
 	InstallMethod( Axes,
 	[IsAxialRep],
 	function( R )
@@ -189,8 +270,7 @@ InstallMethod( Alg,
 			Axis(Alg(R),R!.map(t),Fusion(R),t,x->R!.act(x,t)) ) );
 	return Axes( Alg(R) );
 	end
-);
-
+	);
 InstallMethod( ViewString,
 	[IsAxialRep],
 	A -> Concatenation(
@@ -206,36 +286,31 @@ InstallMethod( PrintString,
 		"\t",PrintString(Trgp(R)),",\n",
 		"\t",PrintString(Alg(R)),",\n",
 		"\t",String(List(Alphabet(R),a->[a,R!.map(a)])),",\n",
-		"\t",PrintString(R!.ss),"\n",
+		"\t",PrintString(SpanningWords(R)),"\n",
 		")"
 	)
 );
 
-InstallMethod( ImageX,
+InstallMethod( Im,"image of an axial representation under gp hom",
 	[IsMapping,IsAxialRep],
 	function( f, R )
 	return AxialRep(
 		Fusion(R),
-		ImageX(f,Trgp(R)),
-		ImageX(f,Alg(R)), ### this part! no
-		t -> fail, # ImageX(f,AlgEmbed(R,InverseImage(f,t))), ## obv needs doin'
-		Image(f,R!.ss)
+		Images(f,Trgp(R)),
+		Alg(R),
+		CreateDictionary(List(Alphabet(R),a->a^f),a->R!.map(PreImage(f,a))),
+		List(SpanningWords(R),Recursive(l->Image(f,l)))
 	);
 	end
-);
-
-InstallMethod( Dimension,
-	[IsAxialRep],
-	R -> Dimension(Alg(R))
 	);
-
 InstallMethod( IncreaseClosure,
 	[IsAxialRep],
 	function( R )
-	local A, ss, n, mt, i, j, z;
+	local time, A, ss, n, mt, i, j, z, B;
+	time := Runtime();
 	A := Alg(R);
-	if not HasClosure(A) then SetClosure(A,Rationals^Dimension(A)); fi;
-	ss := R!.ss;
+	if not HasClosure(A) then SetClosure(A,Field@^Dimension(A)); fi;
+	ss := ShallowCopy(SpanningWords(R));
 	n := Dimension(Closure(A));
 	mt := List([1..n],i->[]);
 	for i in [1..n] do
@@ -244,76 +319,194 @@ InstallMethod( IncreaseClosure,
 			then mt[i][j] := A!.MT[i][j];
 			else
 				n := n+1;
-				Add(ss,ss{[i,j]});
+				Add(ss,ss{[j,i]});
 				mt[i][j] := KroneckerVector(n,n);
 			fi;
 		od;
 	od;
-	z := List([1..n],i->0);
+	z := [1..n]*Zero(Field@);
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
+	B := Alg( Dimension(Closure(A)), n, mt );
+	InfoPro("increased mult table",time);
 
-	return AxialRep( Fusion(R), Trgp(R), 
-		Alg( Dimension(Closure(A)), n, mt ),
+	AddRelations( B, Subspace(Closure(B),Concatenation(List(Filtered(Axes(R),HasEigenspaces),
+		function(a)
+		local evv, rr, i;
+		evv := List(Eigenspaces(a),Basis);
+		rr := [];
+		for i in [1..Length(Fields(Fusion(a)))]
+		do Append(rr,List(evv[i],v->Fields(Fusion(a))[i]*v-Mult(B)(v,Vector(a)))); od;
+		return rr; end ))) );
+
+	Info(AxRepInfo,3,"increased dim: ",Dimension(Closure(A)),"+",n-Dimension(Closure(A)));
+	return AxialRep( Fusion(R), Trgp(R), B,
 		CreateDictionary(Alphabet(R),a->R!.map(a)+z), ss );
 	end
 	);
 InstallMethod( IdealClosure,
 	[IsAxialRep,IsVectorSpace],
 	function( R, V )
-	return CloseUnder( V, Trgp(R), R!.act, Alg(R), Alg(R) );
+	return CloseUnder( V, Symmetries(R), R!.act, Alg(R), Alg(R) );
 	end
 	);
 InstallMethod( Quotient,
 	[IsAxialRep,IsVectorSpace],
 	function( R, X )
-	local Q, K, l, B, s, v, w;
+	local Q, l, li, A;
+	if IsTrivial(X) then return R; fi;
 	Q := NaturalHomomorphismBySubspace( Closure(Alg(R)), X );
-	K := MutableBasis( Rationals, [], Zero(Closure(Alg(R))) );
-	l := [1..Length(R!.ss)];
-	B := Basis(VectorSpace(Rationals,List(Basis(X),Reversed)));
-	for s in [Length(R!.ss),Length(R!.ss)-1..1] do
-		v := R!.map(R!.ss[s]);
-		w := v - Reversed(SiftedVector(B,Reversed(v)));
-		if IsZero(w) then continue; fi;
-		w := SiftedVector(K,w);
-		if IsZero(w) then continue;
-		else
-			CloseMutableBasis(K,w);
-			Remove(l,s);
-		fi;
-	od;
-	return AxialRep( Fusion(R), Trgp(R),
-		Quotient(Alg(R),X),
+	if ForAny(Axes(R),a->Vector(a) in Kernel(Q))
+	then return AxialRepHelper@.trivialAxialRep(Trgp(R),Fusion(R)); fi;
+	l := AlgHelper@.quoBasisPos(Q);
+	li := Intersection([1..Dimension(Alg(R))],l);
+	A := Alg( Length(li), Length(l),
+		List(li,i->List(Intersection([1..i],li),j->Image(Q,Alg(R)!.MT[i][j]))) );
+	Info(AxRepInfo,3,"decreased dim: ",Dimension(A),"+",Dimension(Closure(A))-Dimension(A));
+	return AxialRep( Fusion(R), Trgp(R), A,
 		CreateDictionary(Alphabet(R),a->Image(Q,R!.map(a))),
-		R!.ss{l}
+		SpanningWords(R){l}
 	);
+	end
+	);
+InstallMethod( Subrepresentation,
+	[IsAxialRep,IsGroup],
+	function( R, H )
+	local S;
+	if IsSubgroup(Trgp(R),H)
+	then return fail;
+	### find subalgebra generated by R!.map(Intersection(H,Alphabet(R)))
+	else
+	### find subalgebra with additional symmetries H
+		S := Quotient( R,IdealClosure( R,
+			Subspace( Closure(Alg(R)),
+				Concatenation(List( Basis(Alg(R)), b -> List(
+					Orbit( H, b, R!.act ), o -> b-o ) )) ) ));
+		SetSymmetries( S, H );
+		return S;
+	fi;
 	end
 );
 
-
-InstallMethod( StartAxialRep,
-	[HasShape, IsFusion],
-	function( T, Mth )
-	local dim, mt, i, A, ss, dict, R, sr, s;
-	dim := Sum(Transpositions(T),t->OrbitLength(T,t));
-	mt := List([1..dim],i -> []);
-	for i in [1..dim] do mt[i][i] := KroneckerVector(i,dim); od;
-	A := Alg(dim,mt);
-	ss := Immutable(Union(List(Transpositions(T),t->Orbit(T,t))));
-	ss := Sorted(ss); # how to make use of sortedness?
-	dict := CreateDictionary(ss,s->Basis(A)[Position(ss,s)]);
-	R := AxialRep( Mth, T, A, dict, ss );
-
-	sr := AxialRepHelper@.getSubreps(T,T,Mth);
-	for s in sr do R := AxialRepHelper@.inSubrep( R, s ); od;
-
-	return R;
-	end
-	);
 InstallMethod( FindAxialRep,
-	[HasShape,IsFusion],
-	function(a,b)
-	return fail;
+	[HasShape,IsFusion,IsGroup,IsList],
+	function(S,fus,sym,axioms)
+		local time, R, step;
+		time := Runtime();
+		R := IncreaseClosure(AxialRepHelper@.startAxialRep(S,fus,sym));
+		step := function(R)
+			local ax, a;
+			if Alg(R) = Closure(Alg(R)) then return R; fi;
+			if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
+				then return step(Quotient(R,IdealClosure(R,Relations(Alg(R))))); fi;
+			for ax in axioms do
+				for a in Axes(R) do
+					if not IsVector(Vector(a)) then Error(); fi;
+					ax(a);
+					if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
+					then return step(R); fi;
+			od; od;
+			return step(IncreaseClosure(R));
+		end;
+		R := step(R);
+		WriteAxialRep(R:overwrite:=false);
+		Info(AxRepInfo,2,ElapseStr(time)," ---\t\talgebra found!");
+		return R;
+		end
+		);
+	InstallMethod( FindAxialRep,
+		[HasShape,IsFusion],
+		function(S,fus)
+		return FindAxialRep(S,fus,S,[CheckLinearity,CheckDirectity]); end
+		);
+	InstallMethod( FindUniversalAxialRep,
+		[IsTrgp,IsFusion],
+		function(T,fus)
+		SetShape(T,List(Pairs(T),p->[Order(Product(p)),"U"]));
+		return FindAxialRep(T,fus,AutomorphismGroup(T),[CheckLinearity,CheckDirectity]);
+		end
+	);
+InstallMethod( FindForm,
+	[IsAxialRep],
+	function( R )
+		local tail, A, time, ft, aa, pp, i, j, x, c, p, tails, y, pos, xg, a, eses, u, v, uv, old, new, r;
+		tail := function(v)
+			local u;
+			u := ShallowCopy(v);
+			u[LastNonzeroPos(u)] := 0;
+			return u; end;
+		A := Alg(R);
+		time := Runtime();
+		c := 1;
+		ft := List([1..Dimension(A)],j->[]);
+		aa := Union(List(Transpositions(Trgp(R)),t->t^Trgp(R)));
+		pp := FilteredPositions(SpanningWords(R),w->not IsList(w) and w in aa);
+		for i in pp
+		do ft[i][i] := 2*CentralCharge(Fusion(R)); od;
+		for i in [1..Dimension(A)] do
+			for j in [1..i] do
+				if not IsBound(ft[i][j]) then
+					x := Indeterminate(Field@,c);
+					c := c + 1;
+					for p in Orbit( Symmetries(R),Basis(A){[i,j]},function( om, g )
+						return List(om,v->R!.act(v,g)); end ) do
+						tails := List(p,tail);
+						y := [Mult(A,Field@,ft)(p[1]-tails[1],tails[2]),
+					 				Mult(A,Field@,ft)(p[2]-tails[2],tails[1]),
+									Mult(A,Field@,ft)(tails[1],tails[2])];
+						if ForAll(y,z->z<>fail) then
+							pos := List(p,LastNonzeroPos);
+							xg := (x - Sum(y))/(p[1][pos[1]]*p[2][pos[2]]);
+							pos := Sorted(pos);
+							ft[pos[2]][pos[1]] := xg;
+						fi;
+					od;
+				fi;
+			od;
+		od;
+		InfoPro("built indeterminate form",time); time := Runtime();
+
+		old := [];
+		for a in Axes(R) do
+			for eses in Combinations(Eigenspaces(a),2) do
+				for u in Basis(eses[1]) do
+					for v in Basis(eses[2]) do
+						Add(old,[u,v]);
+					od;
+				od;
+			od;
+		od;
+		while true do
+			c := Length(old);
+			new := [];
+			for uv in old do
+				r := AlgHelper@.relToFn(Mult(A,Field@,ft)(uv[1],uv[2]));
+				if r = fail then Error("alg does not exist??");
+				elif r = false then Add(new,uv);
+				else ft := r(ft); fi;
+			od;
+			if Length(new) = c then break; fi;
+			old := new;
+		od;
+		InfoPro("solved form by perps",time);
+
+		SetFT(A,ft);
+		end
+	);
+
+InstallMethod( Explode1dimlReps,
+	[IsAxialRep],
+	function( R )
+	local a, II;
+	if IsTrivial(R) then return [R]; fi;
+	for a in Axes(R) do
+		II := List(Check1Dimnlity(a),X->IdealClosure(R,X));
+		if not ForAll(II,IsTrivial)
+		then return Filtered(
+			Concatenation(List(II,i->Explode1dimlReps(Quotient(R,i)))),
+			R -> not IsTrivial(R)); fi;
+	od;
+	return [R];
 	end
 );
+

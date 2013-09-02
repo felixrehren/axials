@@ -16,7 +16,7 @@
 # lists: ordering
 	DeclareOperation( "Sorted", [IsList,IsFunction] );
 	DeclareOperation( "Sorted", [IsList] );
-	DeclareOperation( "RecursiveSorted", [IsList] );
+	DeclareOperation( "RecursiveSorted", [IsObject] );
 	DeclareOperation( "PartitionBy", [IsList,IsFunction] );
 	DeclareOperation( "SortedTo", [IsList,IsFunction,IsList] );
 
