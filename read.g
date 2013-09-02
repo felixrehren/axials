@@ -6,4 +6,3 @@ ReadPackage( "axials", "lib/axes.gi" );
 ReadPackage( "axials", "lib/rep.gi" );
 #ReadPackage( "axials", "lib/play.gi" );
 ReadPackage( "axials", "lib/library.gi" );
-ReadPackage( "axials", "lib/majorana.gi" );
