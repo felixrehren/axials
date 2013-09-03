@@ -62,6 +62,29 @@ InstallValue( AlgHelper@, rec(
 				else return Value(e,[x],[s]); fi;
 				end);
 			end
+	, idempotentSolns := function( A, i )
+			local time, rr, ord, solns, r, lm, ss, s;
+			time := Runtime();
+			rr := FilteredNot(Mult(A)(i,i)-i,IsZero);
+			if IsEmpty(rr) then return [i];
+			elif ForAny(rr,r->r in Field@) then return []; fi;
+			r := First(rr,IsUnivariatePolynomial);
+			if r = fail then
+				ord := MonomialLexOrdering();
+				rr := GroebnerBasisNC(rr,ord);
+				InfoPro("crunching relations",time);
+			fi;
+			r := First(rr,IsUnivariatePolynomial);
+			if r = fail then return []; fi;
+			solns := []; 
+			lm := IndeterminateOfUnivariateRationalFunction(r);
+			ss := RootsOfPolynomial(r);
+			for s in ss
+			do Append(solns,
+				AlgHelper@.idempotentSolns(A,AlgHelper@.relToFn(lm-s)(i)) );
+			od;
+			return solns;
+			end
 	)
 );
 
@@ -108,13 +131,9 @@ InstallMethod( Alg,
 	InstallMethod( PrintString,
 	[IsAlg],
 	function(A)
-	local txt;
-	ResetFilterObj(A,HasMT);
-	txt := PrintString(A);
-	SetFilterObj(A,HasMT);
 	return Concatenation(
 		"Alg(\n",
-			"\t",txt,",\n",
+			"\t",PrintString(Field@),"^",String(Dimension(A)),",\n",
 			"\t",String(A!.MT),"\n",
 		")"
 	);
@@ -308,3 +327,23 @@ InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],
 	A -> 1/2*Form(A)(Identity(A),Identity(A))
 	);
+
+InstallMethod( Idempotents, "in subspace of an axial alg",
+	[IsAlg and IsClosed,IsVectorSpace],
+	function( A, V )
+		local B, i;
+		B := Basis(V);
+		i := Sum([1..Dimension(V)], i -> Indeterminate(Field@,i)*B[i]);
+		return AlgHelper@.idempotentSolns(A,i);
+	end
+	);
+	InstallMethod( Idempotents, "in subspace of an axial alg",
+	[IsAlg and IsClosed and HasIdempotents,IsVectorSpace],
+	function( A, V )
+	return Intersection( V, Idempotents(A) );
+	end
+	);
+	InstallMethod( Idempotents, "of an axial alg",
+	[IsAlg and IsClosed],
+	A -> Idempotents(A,A)
+);

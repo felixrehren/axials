@@ -41,3 +41,6 @@ DeclareAttribute( "Identity", IsAlg and IsClosed );
 DeclareAttribute( "FT", IsAlg and IsClosed );
 DeclareAttribute( "Form", IsAlg and HasFT );
 DeclareAttribute( "CentralCharge", IsAlg and IsClosed );
+
+DeclareAttribute( "Idempotents", IsAlg and IsClosed );
+DeclareOperation( "Idempotents", [IsAlg and IsClosed,IsVectorSpace] );
