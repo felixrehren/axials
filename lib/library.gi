@@ -79,7 +79,7 @@ InstallMethod( WriteAxialRep,
 	if Symmetries( R ) <> Trgp( R )
 	then Error("WARNINGWARNIWAR... extra symmetries"); fi;
 	if Field@ <> Rationals
-	then Error("WARNINGWARNIWAR... not over rationals"); fi;
+	then Print("WARNINGWARNIWAR... not over rationals\n"); fi;
 
 
 	rr := GetAxialRep( Fusion(R), StructureDescription(Trgp(R):short) );

@@ -5,7 +5,7 @@
 
 DeclareAttribute("Shape",IsTrgp);
 
-DeclareOperation("IsShape",[IsString]);
+DeclareOperation("IsShape",[IsString,IsSakuma]);
 DeclareOperation("TranspositionGroup",[IsGroup,IsCollection,IsList]);
 DeclareOperation("TrgpNC",[IsGroup,IsCollection,IsList]);
 

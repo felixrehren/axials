@@ -36,14 +36,14 @@ DeclareOperation( "Subrepresentation", [IsAxialRep,IsGroup] );
 
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion,IsGroup,IsList] );
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion] );
+DeclareOperation( "FindAxialRep", [IsGroup,IsSakuma,IsFusion] );
 DeclareOperation( "FindUniversalAxialRep", [IsTrgp,IsFusion] );
 
-DeclareOperation( "ConvertAxialRep", [IsRecord,IsFusion] );
-DeclareOperation( "ConvertAxialReps", [IsDirectory,IsFusion] );
-
 DeclareOperation( "FindForm", [IsAxialRep] );
-DeclareOperation( "Explode1dimlReps", [IsAxialRep] );
+DeclareOperation( "Explode", [IsAxialRep] );
 
 DeclareGlobalVariable( "Field@" );
 InstallValue( Field@, Rationals );
 MakeReadWriteGlobal("Field@axials");
+
+DeclareOperation( "ChangeField", [IsAxialRep,IsField] );

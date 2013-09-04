@@ -116,7 +116,6 @@ InstallMethod( ViewString,
 InstallMethod( TranspositionGroup,
 	[IsGroup,IsCollection,IsList],
 	function( G, D, Sh )
-	if not IsShape(Sh) then return fail; fi;
 	return TrgpNC(G,List(Orbits(G,D),Representative),Sh);
 	end
 	);

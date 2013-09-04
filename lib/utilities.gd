@@ -12,6 +12,14 @@
 
 # lists: logic
 	DeclareOperation( "Count", [IsList,IsFunction] );
+	DeclareOperation( "FilteredNot", [IsList,IsFunction] );
+	DeclareOperation( "All", [IsList] );
+	DeclareOperation( "All", [IsBool] );
+	DeclareOperation( "Any", [IsList] );
+	DeclareOperation( "Any", [IsBool] );
+
+# lists: comprehension
+	DeclareOperation( "Recursive", [IsFunction] );
 
 # lists: ordering
 	DeclareOperation( "Sorted", [IsList,IsFunction] );
@@ -19,13 +27,6 @@
 	DeclareOperation( "RecursiveSorted", [IsObject] );
 	DeclareOperation( "PartitionBy", [IsList,IsFunction] );
 	DeclareOperation( "SortedTo", [IsList,IsFunction,IsList] );
-
-# lists: comprehension
-	DeclareOperation( "Recursive", [IsFunction] );
-	DeclareOperation( "All", [IsList] );
-	DeclareOperation( "All", [IsBool] );
-	DeclareOperation( "Any", [IsList] );
-	DeclareOperation( "Any", [IsBool] );
 
 # dict
 	DeclareOperation( "CreateDictionary", [IsList,IsFunction] );
@@ -38,7 +39,7 @@
 
 # this one is tough to name
 	DeclareOperation( "Mult", [IsVectorSpace,IsVectorSpace,IsList] );
-	DeclareGlobalFunction( "AsRat" );
+	DeclareGlobalFunction( "InField" );
 
 # user
 	DeclareOperation( "UserChoice", [IsString,IsList] );

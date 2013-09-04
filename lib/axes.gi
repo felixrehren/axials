@@ -118,13 +118,16 @@ InstallValue( AxisHelper@,
 			time := Runtime();
 			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a));
 			Uint := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
-			sp := AxisHelper@.sortEigSps(
-				List(Eigenspaces(Field@,Uint),
-					es -> Subspace(Closure(Alg(a)),
-						List(Basis(es),b->LinearCombination(Basis(Uinf),b)))),
-				Eigenvalues(Field@,Uint),
-				Fields(Fusion(a))
-			);
+			sp := List(Eigenspaces(Field@,Uint),
+				es -> Subspace(Closure(Alg(a)),
+					List(Basis(es),b->LinearCombination(Basis(Uinf),b))));
+			if HasFusion(a) then
+				sp := AxisHelper@.sortEigSps(
+					sp,
+					Eigenvalues(Field@,Uint),
+					Fields(Fusion(a))
+				);
+			fi;
 			InfoPro("multspace",time);
 			return sp;
 			end
@@ -236,18 +239,25 @@ InstallMethod( IsIdempotent,
 	v -> Mult(Alg(v))(v,v) = v
 	);
 InstallMethod( Eigenspaces,
-	[IsAxis],
+	[IsAttrVector and HasAlg and HasFusion],
 	function(v)
-		local adv;
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
 		then
-			adv := Ad(v);
 			return AxisHelper@.sortEigSps(
-				Eigenspaces(Field@,adv),
-				Eigenvalues(Field@,adv),
+				Eigenspaces(Field@,Ad(v)),
+				Eigenvalues(Field@,Ad(v)),
 				Fields(Fusion(v))
 			);
 		else return AxisHelper@.fusionClose(v,AxisHelper@.linEigSp(v));
+		fi;
+	end
+	);
+	InstallMethod( Eigenspaces,
+	[IsAttrVector and HasAlg],
+	function(v)
+		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
+		then return Eigenspaces(Field@,Ad(v));
+		else return AxisHelper@.eigspByMult(v);
 		fi;
 	end
 );
@@ -327,7 +337,7 @@ InstallMethod( Check1Dimnlity,
 	adv := Ad(Alg(a),B)(Basis(B)[1]) + lm*Ad(Alg(a),B)(Basis(B)[2]);
 	rr := List(RootsOfPolynomial(Determinant(adv)),r->
 		Subspace(B,[Basis(B)[1] + r*Basis(B)[2]]));
-	if Determinant(Ad(Alg(a),B)(Basis(B)[2])) = 0
+	if IsZero(Determinant(Ad(Alg(a),B)(Basis(B)[2])))
 	then Add(rr,Subspace(B,Basis(B){[2]})); fi;
 	if not IsEmpty(rr) then
 		#do what? ??

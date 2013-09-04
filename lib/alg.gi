@@ -14,7 +14,7 @@ InstallValue( AlgHelper@, rec(
 	, trivialAlg := ~.emptyAlg(0)
 	,	incBasis := function( A, n )
 			local z, mt, i, j;
-			z := List([1..Dimension(A)+n],i->0);
+			z := [1..Dimension(A)+n]*Zero(Field@);
 			mt := List([1..Dimension(A)],i->[]);
 			for i in [1..Dimension(A)] do
 				for j in [1..i] do
@@ -301,7 +301,7 @@ InstallMethod( IncreaseClosure,
 			fi;
 		od;
 	od;
-	z := List([1..n],i->0);
+	z := [1..n]*Zero(Field@);
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
 	return Alg( Dimension(Closure(A)),n,mt );

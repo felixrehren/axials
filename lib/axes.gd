@@ -17,12 +17,12 @@ DeclareOperation( "Vector", [IsAttrVector] );
 
 DeclareAttribute( "Alg", IsAttrVector );
 DeclareAttribute( "Ad", IsAttrVector and HasAlg );
+DeclareAttribute( "Eigenspaces", IsAttrVector and HasAlg );
 DeclareProperty( "IsIdempotent", IsAttrVector and HasAlg );
 DeclareAttribute( "Fusion", IsAttrVector and IsIdempotent );
 DeclareSynonym( "IsAxis", IsAttrVector and IsIdempotent and HasFusion );
 DeclareAttribute( "Involution", IsAxis and IsIdempotent );
 DeclareAttribute( "Miyamoto", IsAxis and IsIdempotent );
-DeclareAttribute( "Eigenspaces", IsAxis );
 
 DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion] );
 DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse] );

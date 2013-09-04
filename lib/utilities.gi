@@ -55,7 +55,40 @@
 		for x in l do
 			if p(x) then c := c+1; fi; od;
 		return c;
-	end);
+		end);
+	InstallMethod( FilteredNot,
+		[IsList,IsFunction],
+		function( list, boolFn )
+		return Filtered(list,x->not boolFn(x)); end
+		);
+	InstallMethod( All,
+		[IsList],
+		L -> ForAll(L,function(l)
+			if IsList(l) then return All(l);
+			else return l; fi; end)
+		);
+	InstallMethod( All,
+		[IsBool],
+		IdFunc
+		);
+	InstallMethod( Any,
+		[IsList],
+		L -> ForAny(L,IdFunc)
+		);
+	InstallMethod( Any,
+		[IsBool],
+		IdFunc
+		);
+
+# lists: comprehension
+	InstallMethod( Recursive,
+		[IsFunction],
+		f -> function( X )
+		if IsList(X) then
+			return List(X,Recursive(f));
+		else
+			return f(X); fi;
+		end);
 
 # lists: ordering
 	InstallMethod( Sorted,
@@ -109,34 +142,6 @@
 			if not IsEmpty(P) then return fail; fi;
 			return R;
 		end);
-
-# lists: comprehension
-	InstallMethod( Recursive,
-		[IsFunction],
-		f -> function( X )
-		if IsList(X) then
-			return List(X,Recursive(f));
-		else
-			return f(X); fi;
-		end);
-	InstallMethod( All,
-		[IsList],
-		L -> ForAll(L,function(l)
-			if IsList(l) then return All(l);
-			else return l; fi; end)
-		);
-	InstallMethod( All,
-		[IsBool],
-		IdFunc
-		);
-	InstallMethod( Any,
-		[IsList],
-		L -> ForAny(L,IdFunc)
-		);
-	InstallMethod( Any,
-		[IsBool],
-		IdFunc
-		);
 
 # dict
 	InstallMethod( CreateDictionary,
@@ -207,29 +212,23 @@
 			end;
 		end
 		);
-	InstallGlobalFunction( AsRat,
+	InstallGlobalFunction( InField,
 		function( a )
-			local c, i, l;
-			if a = fail then
-				return fail;
-			elif IsList(a) then
-				l := [];
-				for i in [1..Length(a)] do
-					l[i] := AsRat(a[i]);
-					if l[i] = fail then return fail; fi; #fail asap
-				od;
-				return l;
-			elif IsZero(a) then
-				return 0;
-			elif a in Rationals then
-				return a;
-			elif IsConstantRationalFunction(a) then
-				c := CoefficientsOfUnivariatePolynomial(a);
-				if not Length(c) = 1 then Error("whaa"); fi;#shouldn't happen
-				return c[1];
-			else
-				return fail;
-			fi;
+		local i, l;
+		if a = fail
+			then return fail;
+		elif IsList(a) then
+			l := [];
+			for i in [1..Length(a)] do
+				l[i] := InField(a[i]);
+				if l[i] = fail then return fail; fi; #fail asap
+			od;
+			return l;
+		elif IsFFE(a) or IsCyc(a)
+			then return a;
+		elif IsConstantRationalFunction(a) then 
+			return Value(a,[IndeterminateOfUnivariateRationalFunction(a)],[0]);
+		else return fail; fi;
 		end
 	);
 

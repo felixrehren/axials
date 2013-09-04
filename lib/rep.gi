@@ -52,9 +52,6 @@ InstallValue( AxialRepHelper@, rec(
 				"we only want one homomorphism up to G, otherwise need extra methods to deal with this"); # e.g. L3(3)?
 			ff := List(ff,Representative);
 			Append(sr,List([1..Length(rr)],i->Im(ff[i],rr[i])));
-	#		sr := List(sr,r-> Subrepresentation(r,
-	#			Stabiliser(G,Union(List(Transpositions(Trgp(r)),t->t^Trgp(r))),OnSets))
-	#		);
 			return sr;
 			end
 	,	closedAlphabet := function(G,aa)
@@ -110,7 +107,7 @@ InstallValue( AxialRepHelper@, rec(
 					bb );
 				bb := Concatenation(bb,tt);
 				A := Field@^Length(bb);
-				for i in [Length(bb)-Length(tt)..Length(bb)]
+				for i in [Length(bb)-Length(tt)+1..Length(bb)]
 				do mt[i] := []; od;
 
 				pos := List(Recursive(s->s^c)(SpanningWords(S)),
@@ -136,7 +133,7 @@ InstallValue( AxialRepHelper@, rec(
 			A := AlgHelper@.incBasis(Alg(A,mt),0);
 			NewRep := AxialRep( Fusion(R), Trgp(R), Alg(A,mt), dict, bb );
 			SetAlphabet(NewRep,alph);
-			rr := Subspace(A,rr);
+			rr := Subspace(A,List(rr,r->r+Zero(A)));
 			if HasRelations(Alg(R))
 			then SetRelations(Alg(NewRep),rr+Subspace(Closure(Alg(NewRep)),List(Basis(Relations(Alg(R))),b->b+Zero(Alg(NewRep))),Zero(Alg(NewRep))));
 			else SetRelations(Alg(NewRep),rr); fi;
@@ -155,12 +152,15 @@ InstallValue( AxialRepHelper@, rec(
 			SetSymmetries(R,sym);
 
 			sr := AxialRepHelper@.getSubreps(T,sym,fus);
+			if sr = fail then return fail; fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
 
 			return R;
 			end
 	, trivialAxialRep := function( T, fus )
-			return AxialRep( fus, T, AlgHelper@.trivialAlg, CreateDictionary([],IdFunc), [] );
+			return AxialRep(
+				fus, T, AlgHelper@.trivialAlg, CreateDictionary([],IdFunc), []
+			);
 			end
 	)
 );
@@ -231,7 +231,7 @@ InstallMethod( Alphabet,
 		return w -> JoinStringsWithSeparator(
 			List(FilteredPositions(w,x->not IsZero(x)),
 				function(i) local s, rat, rep, c;
-					rat := AsRat(w[i]);
+					rat := InField(w[i]);
 					if rat = fail then
 						rep := ExtRepPolynomialRatFun(w[i]);
 						if SignInt(rep[Length(rep)]) = 1 then s := "+";
@@ -291,7 +291,7 @@ InstallMethod( PrintString,
 	)
 );
 
-InstallMethod( Im,"image of an axial representation under gp hom",
+InstallMethod( Im, "image of an axial representation under gp hom",
 	[IsMapping,IsAxialRep],
 	function( f, R )
 	return AxialRep(
@@ -303,7 +303,7 @@ InstallMethod( Im,"image of an axial representation under gp hom",
 	);
 	end
 	);
-InstallMethod( IncreaseClosure,
+InstallMethod( IncreaseClosure, "return axial rep considering longer words",
 	[IsAxialRep],
 	function( R )
 	local time, A, ss, n, mt, i, j, z, B;
@@ -393,7 +393,9 @@ InstallMethod( FindAxialRep,
 	function(S,fus,sym,axioms)
 		local time, R, step;
 		time := Runtime();
-		R := IncreaseClosure(AxialRepHelper@.startAxialRep(S,fus,sym));
+		R := AxialRepHelper@.startAxialRep(S,fus,sym);
+		if R = fail then return fail; fi;
+		R := IncreaseClosure(R);
 		step := function(R)
 			local ax, a;
 			if Alg(R) = Closure(Alg(R)) then return R; fi;
@@ -419,6 +421,14 @@ InstallMethod( FindAxialRep,
 		function(S,fus)
 		return FindAxialRep(S,fus,S,[CheckLinearity,CheckDirectity]); end
 		);
+	InstallMethod( FindAxialRep,
+		[IsGroup,IsSakuma,IsFusion],
+		function(G,Sak,fus)
+			if IsTrgp(G) then return List(Shapes(G,Sak),s->FindAxialRep(s,fus));
+			else return Concatenation(List(
+				GroupToTrgps(G,Orders(Sak)), t -> FindAxialRep(t,Sak,fus) )); fi;
+		end
+		);
 	InstallMethod( FindUniversalAxialRep,
 		[IsTrgp,IsFusion],
 		function(T,fus)
@@ -433,7 +443,7 @@ InstallMethod( FindForm,
 		tail := function(v)
 			local u;
 			u := ShallowCopy(v);
-			u[LastNonzeroPos(u)] := 0;
+			u[LastNonzeroPos(u)] := Zero(Field@);
 			return u; end;
 		A := Alg(R);
 		time := Runtime();
@@ -494,7 +504,7 @@ InstallMethod( FindForm,
 		end
 	);
 
-InstallMethod( Explode1dimlReps,
+InstallMethod( Explode,
 	[IsAxialRep],
 	function( R )
 	local a, II;
@@ -503,10 +513,26 @@ InstallMethod( Explode1dimlReps,
 		II := List(Check1Dimnlity(a),X->IdealClosure(R,X));
 		if not ForAll(II,IsTrivial)
 		then return Filtered(
-			Concatenation(List(II,i->Explode1dimlReps(Quotient(R,i)))),
+			Concatenation(List(II,i->Explode(Quotient(R,i)))),
 			R -> not IsTrivial(R)); fi;
 	od;
 	return [R];
 	end
 );
 
+InstallMethod( ChangeField, "for an axial rep and a (suitable) field",
+	[IsAxialRep,IsField],
+	function( R, F )
+	if Characteristic(Alg(R)) = Characteristic(F)
+	then return R;
+	elif not Characteristic(Alg(R)) = 0
+	then Error("incompatible characteristics"); fi;
+	return AxialRep(
+		Fusion(R),
+		Trgp(R),
+		Alg( F^Dimension(Alg(R)), F^Dimension(Closure(Alg(R))), Alg(R)!.MT*One(F) ),
+		CreateDictionary( Alphabet(R), a -> R!.map(a)*One(F) ),
+		SpanningWords(R)
+	);
+	end
+);
