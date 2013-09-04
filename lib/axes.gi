@@ -108,7 +108,7 @@ InstallValue( AxisHelper@,
 			return Uinf;
 			end
 	, sortEigSps := function( es, ev, ff )
-			return List(ff,function(f) local i;
+			return List(ff*One(Field@),function(f) local i;
 				i := Position(ev,f);
 				if i = fail then return TrivialSubspace(es[1]);
 				else return es[i]; fi; end );
@@ -167,7 +167,7 @@ InstallValue( AxisHelper@,
 	, linEigSp := function( v )
 			local time, B, vimage, vv, ff, eigspBySplit, eigspByMult;
 			time := Runtime();
-			if HasMiyamoto(v) then
+			if not IsEmpty(Miyamoto(Fusion(v))) then
 				B := Basis(Closure(Alg(v)));
 				vimage := List(B,b->Miyamoto(v)(b));
 				vv := [
@@ -182,7 +182,7 @@ InstallValue( AxisHelper@,
 				eigspBySplit := Concatenation(List([1,2],i->
 					AxisHelper@.splitSpace( v, vv[i], ff[i] ) ));
 			else
-				eigspBySplit := AxisHelper@.splitSpace(v, Alg(v), Fields(Fusion(v)));
+				eigspBySplit := AxisHelper@.splitSpace(v,Closure(Alg(v)), Fields(Fusion(v)));
 			fi;
 			eigspByMult := AxisHelper@.eigspByMult(v);
 			return List([1..Length(Fields(Fusion(v)))],
@@ -344,18 +344,24 @@ InstallMethod( CentralCharge,
 		else return 1/2*Form(Alg(v))(Vector(v),Vector(v)); fi;
 	end
 	);
-InstallMethod( Decomposition,
+InstallMethod( Explosion,
 	[IsIdempotent],
 	function( v )
-		local adv, p, B;
+		local adv, p, B, ff;
 		if not IsClosed(Alg(v)) then return fail; fi;
 		adv := Ad(v);
-		p := Position(Eigenvalues(Field@,adv),1);
+		p := Position(Eigenvalues(Field@,adv),One(Field@));
 		if p = fail then return fail; fi;
 		B := Eigenspaces(Field@,adv)[p];
 		if Dimension(B) = 1 then return [v];
-		# cite meyer-neutsch for this result!
-		else Error("find decomposition??"); fi;
+		else
+			ff := Filtered(
+			 AlgHelper@.annihSubsets(Idempotents(Alg(v),B),Mult(Alg(v))),
+				S -> Sum(S) = Vector(v)
+			);
+			if not Length(ff) = 1 then Error("wat"); fi;
+			return ff[1];
+		fi;
 	end
 	);
 

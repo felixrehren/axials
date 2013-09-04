@@ -44,3 +44,5 @@ DeclareAttribute( "CentralCharge", IsAlg and IsClosed );
 
 DeclareAttribute( "Idempotents", IsAlg and IsClosed );
 DeclareOperation( "Idempotents", [IsAlg and IsClosed,IsVectorSpace] );
+DeclareAttribute( "AssociativeSubalgebras", IsAlg and IsClosed );
+DeclareOperation( "AssociativeSubalgebras", [IsAlg and IsClosed,IsVectorSpace]);

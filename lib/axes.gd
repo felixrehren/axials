@@ -34,6 +34,6 @@ DeclareOperation( "CheckDirectity", [IsAxis] );
 DeclareOperation( "Check1Dimnlity", [IsAxis] );
 
 DeclareAttribute( "CentralCharge", IsAttrVector and HasAlg );
-DeclareAttribute( "Decomposition", IsIdempotent );
+DeclareAttribute( "Explosion", IsIdempotent );
 
 DeclareGlobalVariable( "AxisHelper@" );

@@ -49,7 +49,7 @@ InstallValue( AlgHelper@, rec(
 			local er, p, x, s;
 			if r = fail then return false;
 			elif IsZero(r) then return IdFunc;
-			elif AsRat(r)<>fail then return fail; fi;
+			elif InField(r)<>fail then return fail; fi;
 			er := ExtRepPolynomialRatFun(r);
 			p := First([1..Length(er)/2],p -> 
 				 not IsEmpty(er[2*p-1]) and er[2*p-1][2]=1);
@@ -66,7 +66,7 @@ InstallValue( AlgHelper@, rec(
 			local time, rr, ord, solns, r, lm, ss, s;
 			time := Runtime();
 			rr := FilteredNot(Mult(A)(i,i)-i,IsZero);
-			if IsEmpty(rr) then return [i];
+			if IsEmpty(rr) then return [InField(i)];
 			elif ForAny(rr,r->r in Field@) then return []; fi;
 			r := First(rr,IsUnivariatePolynomial);
 			if r = fail then
@@ -84,6 +84,29 @@ InstallValue( AlgHelper@, rec(
 				AlgHelper@.idempotentSolns(A,AlgHelper@.relToFn(lm-s)(i)) );
 			od;
 			return solns;
+			end
+	,	maximalCliques := function( inc )	 	### bool-valued incidence matrix
+			local set, cliques, s, c;
+			set := [1..Length(inc)];
+			cliques := List( set, s -> [s] );
+			for s in set do
+				for c in cliques do
+					if s > Maximum(c)
+					and ForAll(c,i->inc[i][s])
+					then Add(cliques,Concatenation(c,[s])); fi;
+				od;
+			od;
+			return Filtered( cliques,
+				c -> not ForAny( cliques, d -> Size(d)>Size(c) and IsSubset(d,c) ) );
+			end
+	, annihSubsets := function( ii, mult )
+			local inc, cliques;
+			ii := FilteredNot(ii,IsZero);
+			inc := List(ii, i -> List(ii, j -> IsZero(mult(i,j)) ));
+			cliques := AlgHelper@.maximalCliques( inc );
+			cliques := Filtered(cliques,c->Size(c)>2);
+			## remove {a}, {a,i-a}
+			return List(cliques,c -> ii{c});
 			end
 	)
 );
@@ -315,7 +338,7 @@ InstallMethod( Identity,
 		x := List(x,AlgHelper@.relToFn(rr[i]));
 		rr := List(rr,AlgHelper@.relToFn(rr[i]));
 	od;
-	return x;
+	return InField(x);
 	end
 );
 
@@ -334,7 +357,7 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 		local B, i;
 		B := Basis(V);
 		i := Sum([1..Dimension(V)], i -> Indeterminate(Field@,i)*B[i]);
-		return AlgHelper@.idempotentSolns(A,i);
+		return Set(AlgHelper@.idempotentSolns(A,i));
 	end
 	);
 	InstallMethod( Idempotents, "in subspace of an axial alg",
@@ -346,4 +369,17 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 	InstallMethod( Idempotents, "of an axial alg",
 	[IsAlg and IsClosed],
 	A -> Idempotents(A,A)
+	);
+InstallMethod( AssociativeSubalgebras, "in subspace of an axial alg",
+	[IsAlg and IsClosed,IsVectorSpace],
+	function( A, V )
+	return List(
+		AlgHelper@.annihSubsets(Idempotents(A,V),Mult(A)),
+		B->Subspace(A,B,"basis")
+	);
+	end
+	);
+	InstallMethod( AssociativeSubalgebras, "of an axial alg",
+	[IsAlg and IsClosed],
+	A -> AssociativeSubalgebras(A,A)
 );
