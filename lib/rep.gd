@@ -42,8 +42,4 @@ DeclareOperation( "FindUniversalAxialRep", [IsTrgp,IsFusion] );
 DeclareOperation( "FindForm", [IsAxialRep] );
 DeclareOperation( "Explode", [IsAxialRep] );
 
-DeclareGlobalVariable( "Field@" );
-InstallValue( Field@, Rationals );
-MakeReadWriteGlobal("Field@axials");
-
 DeclareOperation( "ChangeField", [IsAxialRep,IsField] );

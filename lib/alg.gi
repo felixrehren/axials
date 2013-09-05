@@ -4,17 +4,9 @@
 #
 
 InstallValue( AlgHelper@, rec(
-		emptyAlg := function(dim)
-			local V;
-			V := Field@^dim;
-			SetMT(V,List([1..dim],d->[]));
-			SetClosure(V,Field@^dim);
-			return V;
-			end
-	, trivialAlg := ~.emptyAlg(0)
 	,	incBasis := function( A, n )
 			local z, mt, i, j;
-			z := [1..Dimension(A)+n]*Zero(Field@);
+			z := [1..Dimension(A)+n]*Zero(LeftActingDomain(A));
 			mt := List([1..Dimension(A)],i->[]);
 			for i in [1..Dimension(A)] do
 				for j in [1..i] do
@@ -29,9 +21,9 @@ InstallValue( AlgHelper@, rec(
 			end
 	, quoBasisPos := function( Q )
 			local K,l,B,s,v,w;
-			K := MutableBasis( Field@, [], Zero(Source(Q)) );
+			K := MutableBasis( LeftActingDomain(Source(Q)), [], Zero(Source(Q)) );
 			l := [1..Dimension(Source(Q))];
-			B := Basis(VectorSpace(Field@,List(Basis(Kernel(Q)),Reversed)));
+			B := Basis(VectorSpace(LeftActingDomain(Source(Q)),List(Basis(Kernel(Q)),Reversed)));
 			for s in [Dimension(Source(Q)),Dimension(Source(Q))-1..1] do
 				v := Basis(Source(Q))[s];
 				w := v - Reversed(SiftedVector(B,Reversed(v)));
@@ -54,10 +46,10 @@ InstallValue( AlgHelper@, rec(
 			p := First([1..Length(er)/2],p -> 
 				 not IsEmpty(er[2*p-1]) and er[2*p-1][2]=1);
 			if p = fail then return false; fi;
-			x := Indeterminate(Field@,er[2*p-1][1]);
+			x := Indeterminate(DefaultField(er[2*p]),er[2*p-1][1]);
 			s := x - r/er[2*p];
 			return Recursive(function(e)
-				if e in Field@
+				if IsRat(e) or IsCyc(e)
 				then return e; 
 				else return Value(e,[x],[s]); fi;
 				end);
@@ -67,7 +59,7 @@ InstallValue( AlgHelper@, rec(
 			time := Runtime();
 			rr := FilteredNot(Mult(A)(i,i)-i,IsZero);
 			if IsEmpty(rr) then return [InField(i)];
-			elif ForAny(rr,r->r in Field@) then return []; fi;
+			elif ForAny(rr,r->InField(r)<>fail) then return []; fi;
 			r := First(rr,IsUnivariatePolynomial);
 			if r = fail then
 				ord := MonomialLexOrdering();
@@ -120,7 +112,7 @@ InstallMethod( Alg,
 	InstallMethod( Alg,
 	[IsPosInt,IsList],
 	function( dim, mt )
-	return Alg(Field@^dim,Field@^dim,mt);
+	return Alg(DefaultField(mt[1][1])^dim,DefaultField(mt[1][1])^dim,mt);
 	end
 	);
 	InstallMethod( Alg,
@@ -136,7 +128,7 @@ InstallMethod( Alg,
 	[IsPosInt,IsPosInt,IsList],
 	function( dim, cl, mt )
 	local W, V;
-	W := Field@^cl;
+	W := DefaultField(mt[1][1])^cl;
 	V := Subspace(W,Basis(W){[1..dim]});
 	return Alg( V, W, mt );
 	end
@@ -156,11 +148,15 @@ InstallMethod( Alg,
 	function(A)
 	return Concatenation(
 		"Alg(\n",
-			"\t",PrintString(Field@),"^",String(Dimension(A)),",\n",
+			"\t",PrintString(LeftActingDomain(A)),"^",String(Dimension(A)),",\n",
 			"\t",String(A!.MT),"\n",
 		")"
 	);
 	end
+	);
+	InstallMethod( Closure,
+	[IsAlg],
+	A -> VectorSpace( LeftActingDomain(A), A!.MT, Zero(A) )
 	);
 	InstallMethod( IsClosed,
 	[IsAlg],
@@ -195,7 +191,7 @@ InstallMethod( CloseUnderAct,
 	function( V, G, act )
 		local time, mb, vs, newvs, g, v, w, S;
 		time := Runtime();
-		mb := MutableBasis( Field@, Basis(V), Zero(V) );
+		mb := MutableBasis( LeftActingDomain(V), Basis(V), Zero(V) );
 		vs := BasisVectors(mb);
 		while not IsEmpty(vs) do
 			newvs := [];
@@ -210,7 +206,7 @@ InstallMethod( CloseUnderAct,
 			od;
 			vs := newvs;
 		od;
-		S := VectorSpace( Field@, BasisVectors(mb), Zero(V) );
+		S := VectorSpace( LeftActingDomain(V), BasisVectors(mb), Zero(V) );
 		InfoPro("orbiting",time);
 		return S;
 		end
@@ -220,10 +216,10 @@ InstallMethod( ImageUnderMult,
 	function( V, U, A )
 		local time, mb, v, u, S;
 		time := Runtime();
-		mb := MutableBasis( Field@, [], Zero(V) );
+		mb := MutableBasis( LeftActingDomain(A), [], Zero(V) );
 		for v in Basis(Intersection(A,V)) do for u in Basis(Intersection(A,U))
 		do CloseMutableBasis( mb, Mult(A)(v,u) ); od; od;
-		S := VectorSpace( Field@, BasisVectors(mb), Zero(V) );
+		S := VectorSpace( LeftActingDomain(A), BasisVectors(mb), Zero(V) );
 		InfoPro("multiplying",time);
 		return S;
 		end
@@ -233,7 +229,7 @@ InstallMethod( ImageUnderMult,
 	function( v, U, A )
 	if not v in A then return TrivialSubspace(A);
 	else return
-		VectorSpace(Field@,List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
+		VectorSpace(LeftActingDomain(A),List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
 	fi;
 	end
 	);
@@ -288,7 +284,7 @@ InstallMethod( IncreaseClosure,
 	[IsAlg],
 	function( A )
 	local mt, n, i, j, z;
-	if not HasClosure(A) then SetClosure(A,Field@^Dimension(A)); fi;
+	if not HasClosure(A) then SetClosure(A,LeftActingDomain(A)^Dimension(A)); fi;
 	n := Dimension(Closure(A));
 	mt := List([1..Dimension(Closure(A))],i->[]);
 	for i in [1..Dimension(Closure(A))] do
@@ -297,11 +293,11 @@ InstallMethod( IncreaseClosure,
 			then mt[i][j] := A!.MT[i][j];
 			else
 				n := n+1;
-				mt[i][j] := KroneckerVector(n,n);
+				mt[i][j] := KroneckerVector(n,n)*One(LeftActingDomain(A));
 			fi;
 		od;
 	od;
-	z := [1..n]*Zero(Field@);
+	z := [1..n]*Zero(LeftActingDomain(A));
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
 	return Alg( Dimension(Closure(A)),n,mt );
@@ -332,7 +328,7 @@ InstallMethod( Identity,
 	[IsAlg and IsClosed],
 	function( A )
 	local x, rr, i;
-	x := List( [1..Dimension(A)], i -> Indeterminate( Field@, i ) );
+	x := List( [1..Dimension(A)], i -> Indeterminate( LeftActingDomain(A), i ) );
 	rr := Concatenation(List( Basis(A), b -> Mult(A)(b,x) - b ));
 	for i in [1..Length(rr)] do
 		x := List(x,AlgHelper@.relToFn(rr[i]));
@@ -344,7 +340,7 @@ InstallMethod( Identity,
 
 InstallMethod( Form,
 	[IsAlg and HasFT],
-	A -> Mult( A, Field@, A!.FT )
+	A -> Mult( A, LeftActingDomain(A), A!.FT )
 	);
 InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],
@@ -356,7 +352,7 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 	function( A, V )
 		local B, i;
 		B := Basis(V);
-		i := Sum([1..Dimension(V)], i -> Indeterminate(Field@,i)*B[i]);
+		i := Sum([1..Dimension(V)], i -> Indeterminate(LeftActingDomain(A),i)*B[i]);
 		return Set(AlgHelper@.idempotentSolns(A,i));
 	end
 	);

@@ -4,43 +4,45 @@
 #
 
 InstallValue( AxialRepHelper@, rec(
-		getSubreps := function( T,G,th )
+	getSubreps := function( T,G,th,field )
 			local sr, ss, rr, misspos, prespos, ans, m, s, ff;
 
 			sr := [];
 			ss := MaximalSubshapes(T);
 			rr := List(ss,s->GetAxialRep(th,s));
+			rr := List(rr,function(r) local s;
+				if r = [] then return r;
+				else s := ChangeField(r,field);
+					if s = fail then return []; else return s; fi;
+				fi; end);
 			misspos := FilteredPositions(rr,r->r=[]);
 			prespos := FilteredPositions(rr,r->r<>[]);
 
 			if ForAny(rr{prespos},IsTrivial) then
 				Info(AxRepInfo,"nonexistent subAlgebras\n",
-					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),ViewString),",\n"));
+					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),Description),",\n"));
 				return fail; fi;
 
 			if not IsEmpty(misspos) then
 				ans := UserChoice( Concatenation(
 						"missing algebras for\n",
-						JoinStringsWithSeparator(List(ss{misspos},ViewString),",\n"),"\n",
+						JoinStringsWithSeparator(List(ss{misspos},Description),",\n"),"\n",
 						"what would you like to do?\n",
 						"1 = quit, ",
 						"2 = find all, ",
-						"3 = ignore & try subgroups, ",
-						"4 = ignore & continue"
+						"3 = continue without"
 					),
 					[1..4]
 				);
 				if ans = 1 then return fail;
 				elif ans = 2 then
-					#FindAxialReps(List(misspos,m->AsSmallerPermTrgp(ss[m])));
-					## we don't know the sakuma!
 					for m in misspos
-					do rr[m] := GetAxialRep(ss[m],th); od;
+					do rr[m] := FindAxialRep(ss[m],th); od;
 				elif ans = 3 or ans = 4 then
 					misspos := Difference([1..Length(ss)],misspos);
 					if ans = 3 then
 						for s in ss{misspos}
-						do Append(sr, AxialRepHelper@.getSubreps(s,G,th)); od;
+						do Append(sr, AxialRepHelper@.getSubreps(s,G,th,field)); od;
 					fi;
 					ss := ss{misspos};
 					rr := rr{misspos};
@@ -106,15 +108,18 @@ InstallValue( AxialRepHelper@, rec(
 						t->AxialRepHelper@.canonSet(bb,t)),
 					bb );
 				bb := Concatenation(bb,tt);
-				A := Field@^Length(bb);
+				A := LeftActingDomain(A)^Length(bb);
 				for i in [Length(bb)-Length(tt)+1..Length(bb)]
 				do mt[i] := []; od;
 
 				pos := List(Recursive(s->s^c)(SpanningWords(S)),
 					s->Position(bb,AxialRepHelper@.canonSet(bb,s)));
 				emb := List( [1..Dimension(Alg(S))], i -> Basis(A)[pos[i]] );
-				for s in AxialRepHelper@.closedAlphabet(Trgp(R),tt) do
-					AddDictionary(dict,s,S!.map(s)*emb); od;
+				for s in Alphabet(S) do
+					if LookupDictionary(dict,s^c) = fail
+					then AddDictionary(dict,s^c,S!.map(s)*emb);
+					else Add(rr,LookupDictionary(dict,s^c)-S!.map(s)*emb); fi;
+				od;
 
 				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonSet(Alphabet(R),s^c)));
 				pstnsR := FilteredPositions(bb,s->All(Recursive(x->x in al)(s)));
@@ -144,6 +149,8 @@ InstallValue( AxialRepHelper@, rec(
 			dim := Sum(Transpositions(T),t->OrbitLength(T,t));
 			mt := List([1..dim],i -> []);
 			for i in [1..dim] do mt[i][i] := KroneckerVector(i,dim); od;
+			if IsField(ValueOption("field"))
+			then mt := mt*One(ValueOption("field")); fi;
 			A := Alg(dim,mt);
 			ss := Immutable(Union(List(Transpositions(T),t->Orbit(T,t))));
 			ss := Sorted(ss); # how to make use of sortedness?
@@ -151,16 +158,11 @@ InstallValue( AxialRepHelper@, rec(
 			R := AxialRep( fus, T, A, dict, ss );
 			SetSymmetries(R,sym);
 
-			sr := AxialRepHelper@.getSubreps(T,sym,fus);
+			sr := AxialRepHelper@.getSubreps(T,sym,fus,LeftActingDomain(A));
 			if sr = fail then return fail; fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
 
 			return R;
-			end
-	, trivialAxialRep := function( T, fus )
-			return AxialRep(
-				fus, T, AlgHelper@.trivialAlg, CreateDictionary([],IdFunc), []
-			);
 			end
 	)
 );
@@ -274,7 +276,7 @@ InstallMethod( Alphabet,
 InstallMethod( ViewString,
 	[IsAxialRep],
 	A -> Concatenation(
-		"an axial rep of ",ViewString(Trgp(A)),
+		"an axial rep of ",Description(Trgp(A)),
 		" on ", ViewString(Alg(A))
 		)
 	);
@@ -309,7 +311,7 @@ InstallMethod( IncreaseClosure, "return axial rep considering longer words",
 	local time, A, ss, n, mt, i, j, z, B;
 	time := Runtime();
 	A := Alg(R);
-	if not HasClosure(A) then SetClosure(A,Field@^Dimension(A)); fi;
+	if not HasClosure(A) then SetClosure(A,LeftActingDomain(A)^Dimension(A)); fi;
 	ss := ShallowCopy(SpanningWords(R));
 	n := Dimension(Closure(A));
 	mt := List([1..n],i->[]);
@@ -320,11 +322,11 @@ InstallMethod( IncreaseClosure, "return axial rep considering longer words",
 			else
 				n := n+1;
 				Add(ss,ss{[j,i]});
-				mt[i][j] := KroneckerVector(n,n);
+				mt[i][j] := KroneckerVector(n,n)*One(LeftActingDomain(A));
 			fi;
 		od;
 	od;
-	z := [1..n]*Zero(Field@);
+	z := [1..n]*Zero(LeftActingDomain(A));
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
 	B := Alg( Dimension(Closure(A)), n, mt );
@@ -357,7 +359,7 @@ InstallMethod( Quotient,
 	if IsTrivial(X) then return R; fi;
 	Q := NaturalHomomorphismBySubspace( Closure(Alg(R)), X );
 	if ForAny(Axes(R),a->Vector(a) in Kernel(Q))
-	then return AxialRepHelper@.trivialAxialRep(Trgp(R),Fusion(R)); fi;
+	then return AxialRep(Fusion(R),Trgp(R),Alg(LeftActingDomain(Q)^0,[[]]),CreateDictionary([],IdFunc),[]); fi;
 	l := AlgHelper@.quoBasisPos(Q);
 	li := Intersection([1..Dimension(Alg(R))],l);
 	A := Alg( Length(li), Length(l),
@@ -412,7 +414,7 @@ InstallMethod( FindAxialRep,
 		end;
 		R := step(R);
 		WriteAxialRep(R:overwrite:=false);
-		Info(AxRepInfo,2,ElapseStr(time)," ---\t\talgebra found!");
+		Info(AxRepInfo,2,ElapseStr(time)," --- algebra found!");
 		return R;
 		end
 		);
@@ -432,7 +434,10 @@ InstallMethod( FindAxialRep,
 	InstallMethod( FindUniversalAxialRep,
 		[IsTrgp,IsFusion],
 		function(T,fus)
-		SetShape(T,List(Pairs(T),p->[Order(Product(p)),"U"]));
+		local sh;
+		sh := List(Pairs(T),p->[Order(Product(p)),"U"]);
+		if HasShape(T) then T!.Shape := sh; fi;
+		SetShape(T,sh);
 		return FindAxialRep(T,fus,AutomorphismGroup(T),[CheckLinearity,CheckDirectity]);
 		end
 	);
@@ -443,7 +448,7 @@ InstallMethod( FindForm,
 		tail := function(v)
 			local u;
 			u := ShallowCopy(v);
-			u[LastNonzeroPos(u)] := Zero(Field@);
+			u[LastNonzeroPos(u)] := Zero(LeftActingDomain(Alg(R)));
 			return u; end;
 		A := Alg(R);
 		time := Runtime();
@@ -456,14 +461,14 @@ InstallMethod( FindForm,
 		for i in [1..Dimension(A)] do
 			for j in [1..i] do
 				if not IsBound(ft[i][j]) then
-					x := Indeterminate(Field@,c);
+					x := Indeterminate(LeftActingDomain(Alg(R)),c);
 					c := c + 1;
 					for p in Orbit( Symmetries(R),Basis(A){[i,j]},function( om, g )
 						return List(om,v->R!.act(v,g)); end ) do
 						tails := List(p,tail);
-						y := [Mult(A,Field@,ft)(p[1]-tails[1],tails[2]),
-					 				Mult(A,Field@,ft)(p[2]-tails[2],tails[1]),
-									Mult(A,Field@,ft)(tails[1],tails[2])];
+						y := [Mult(A,LeftActingDomain(Alg(R)),ft)(p[1]-tails[1],tails[2]),
+						 Mult(A,LeftActingDomain(Alg(R)),ft)(p[2]-tails[2],tails[1]),
+						 Mult(A,LeftActingDomain(Alg(R)),ft)(tails[1],tails[2])];
 						if ForAll(y,z->z<>fail) then
 							pos := List(p,LastNonzeroPos);
 							xg := (x - Sum(y))/(p[1][pos[1]]*p[2][pos[2]]);
@@ -490,7 +495,7 @@ InstallMethod( FindForm,
 			c := Length(old);
 			new := [];
 			for uv in old do
-				r := AlgHelper@.relToFn(Mult(A,Field@,ft)(uv[1],uv[2]));
+				r := AlgHelper@.relToFn(Mult(A,LeftActingDomain(A),ft)(uv[1],uv[2]));
 				if r = fail then Error("alg does not exist??");
 				elif r = false then Add(new,uv);
 				else ft := r(ft); fi;
@@ -526,7 +531,7 @@ InstallMethod( ChangeField, "for an axial rep and a (suitable) field",
 	if Characteristic(Alg(R)) = Characteristic(F)
 	then return R;
 	elif not Characteristic(Alg(R)) = 0
-	then Error("incompatible characteristics"); fi;
+	then return fail; fi;
 	return AxialRep(
 		Fusion(R),
 		Trgp(R),

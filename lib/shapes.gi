@@ -84,20 +84,23 @@ InstallMethod( ShapeStr,
 		if i = 1 then return "";
 		else return Concatenation("^",String(i)); fi; end;
 	return Concatenation("(",
-		JoinStringsWithSeparator(List(Set(S),s->Concatenation(s,mlt(Count(S,t->t=s)))),", " ),")");
+		JoinStringsWithSeparator(List(Set(Shape(S)),s->
+			Concatenation(Concatenation(List(s,String)),mlt(Count(Shape(S),t->t=s)))),", " ),")");
 	end
 );
-InstallMethod( ViewString,
-	[HasShape],
+InstallMethod( Description, "for a trgp with shape",
+	[IsTrgp and HasShape],
 	function( S )
-	local txt;
+	local t;
 	ResetFilterObj(S,HasShape);
-	txt := ViewString(S);
+	t := Description(S);
 	SetFilterObj(S,HasShape);
 	return Concatenation(
-		txt,
-		" shape ",ShapeStr(S)
-		); end
+		t,
+		", shape ",
+		ShapeStrMlts(S)
+	);
+	end
 	);
 	InstallMethod( PrintString,
 	[HasShape],
@@ -110,6 +113,15 @@ InstallMethod( ViewString,
 	txt := Concatenation(txt,
 		",\n\t",PrintString(Shape(S)),"\n)");
 	return txt;
+	end
+);
+InstallMethod( ImagesSet,"for a transposition group with shape",
+	[IsMapping,HasShape],SUM_FLAGS,
+	function( f, S )
+  return TranspositionGroup(
+		Image(f),
+		Image(f,Transpositions(S)),
+		Shape(S) );
 	end
 );
 

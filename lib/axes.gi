@@ -108,7 +108,7 @@ InstallValue( AxisHelper@,
 			return Uinf;
 			end
 	, sortEigSps := function( es, ev, ff )
-			return List(ff*One(Field@),function(f) local i;
+			return List(ff,function(f) local i;
 				i := Position(ev,f);
 				if i = fail then return TrivialSubspace(es[1]);
 				else return es[i]; fi; end );
@@ -118,14 +118,14 @@ InstallValue( AxisHelper@,
 			time := Runtime();
 			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a));
 			Uint := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
-			sp := List(Eigenspaces(Field@,Uint),
+			sp := List(Eigenspaces(LeftActingDomain(Uinf),Uint),
 				es -> Subspace(Closure(Alg(a)),
 					List(Basis(es),b->LinearCombination(Basis(Uinf),b))));
 			if HasFusion(a) then
 				sp := AxisHelper@.sortEigSps(
 					sp,
-					Eigenvalues(Field@,Uint),
-					Fields(Fusion(a))
+					Eigenvalues(LeftActingDomain(Uinf),Uint),
+					Fields(Fusion(a))*One(LeftActingDomain(Alg(a)))
 				);
 			fi;
 			InfoPro("multspace",time);
@@ -133,8 +133,8 @@ InstallValue( AxisHelper@,
 			end
 	, solver := function( fields )
 			local P, mat, solns;
-			P := PolynomialRing(Field@,
-				List([1..Length(fields)],i->Indeterminate(Field@,i)));
+			P := PolynomialRing(DefaultField(fields),
+				List([1..Length(fields)],i->Indeterminate(DefaultField(fields),i)));
 			mat := List([1..Length(fields)],
 				i -> Concatenation( List(fields,f->f^(i-1)), [P.(i)] )
 			) * One(P);
@@ -199,7 +199,7 @@ InstallValue( AxisHelper@,
 			fplus  := Set(Difference(fields,fminus));
 			fuse := Fuse(Fusion(a));
 
-			eigMBs :=List(eigSp,sp -> MutableBasis(Field@,Basis(sp),Zero(Closure(Alg(a)))));
+			eigMBs :=List(eigSp,sp -> MutableBasis(LeftActingDomain(Alg(a)),Basis(sp),Zero(Closure(Alg(a)))));
 			new := Concatenation(List([1..Length(fields)],i->
 				List(Basis(Intersection(Alg(a),eigSp[i])),b->[fields[i],b]) ));
 
@@ -244,9 +244,9 @@ InstallMethod( Eigenspaces,
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
 		then
 			return AxisHelper@.sortEigSps(
-				Eigenspaces(Field@,Ad(v)),
-				Eigenvalues(Field@,Ad(v)),
-				Fields(Fusion(v))
+				Eigenspaces(LeftActingDomain(Alg(v)),Ad(v)),
+				Eigenvalues(LeftActingDomain(Alg(v)),Ad(v)),
+				Fields(Fusion(v))*One(LeftActingDomain(Alg(v)))
 			);
 		else return AxisHelper@.fusionClose(v,AxisHelper@.linEigSp(v));
 		fi;
@@ -256,7 +256,7 @@ InstallMethod( Eigenspaces,
 	[IsAttrVector and HasAlg],
 	function(v)
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
-		then return Eigenspaces(Field@,Ad(v));
+		then return Eigenspaces(LeftActingDomain(Alg(v)),Ad(v));
 		else return AxisHelper@.eigspByMult(v);
 		fi;
 	end
@@ -330,7 +330,7 @@ InstallMethod( Check1Dimnlity,
 	time := Runtime();
 	B := Eigenspaces(a)[Position(Fields(Fusion(a)),1)];
 	if Dimension(B) = 1 then return [TrivialSubspace(B)]; fi;
-	lm := Indeterminate(Field@);
+	lm := Indeterminate(LeftActingDomain(Alg(a)));
 	# v := Basis(B)[1] + lm*Basis(B)[2]
 	# any codimension-1 ideal will contain v for some value of lm
 	# if adv has a 0-eigenvalue then v lies in an ideal
@@ -360,9 +360,9 @@ InstallMethod( Explosion,
 		local adv, p, B, ff;
 		if not IsClosed(Alg(v)) then return fail; fi;
 		adv := Ad(v);
-		p := Position(Eigenvalues(Field@,adv),One(Field@));
+		p := Position(Eigenvalues(LeftActingDomain(Alg(v)),adv),One(LeftActingDomain(Alg(v))));
 		if p = fail then return fail; fi;
-		B := Eigenspaces(Field@,adv)[p];
+		B := Eigenspaces(LeftActingDomain(Alg(v)),adv)[p];
 		if Dimension(B) = 1 then return [v];
 		else
 			ff := Filtered(

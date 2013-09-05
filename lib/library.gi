@@ -78,7 +78,7 @@ InstallMethod( WriteAxialRep,
 	local rr, p, ans;
 	if Symmetries( R ) <> Trgp( R )
 	then Error("WARNINGWARNIWAR... extra symmetries"); fi;
-	if Field@ <> Rationals
+	if LeftActingDomain(Alg(R)) <> Rationals
 	then Print("WARNINGWARNIWAR... not over rationals\n"); fi;
 
 
