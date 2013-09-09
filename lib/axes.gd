@@ -21,8 +21,8 @@ DeclareAttribute( "Eigenspaces", IsAttrVector and HasAlg );
 DeclareProperty( "IsIdempotent", IsAttrVector and HasAlg );
 DeclareAttribute( "Fusion", IsAttrVector and IsIdempotent );
 DeclareSynonym( "IsAxis", IsAttrVector and IsIdempotent and HasFusion );
-DeclareAttribute( "Involution", IsAxis and IsIdempotent );
-DeclareAttribute( "Miyamoto", IsAxis and IsIdempotent );
+DeclareAttribute( "Involution", IsAxis );
+DeclareAttribute( "Miyamoto", IsAxis );
 
 DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion] );
 DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse] );

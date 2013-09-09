@@ -22,7 +22,7 @@ InstallMethod( GetAxialRep,
 		s -> s[1]<>'.');
 	end 			## to do: how to create directories
 	);
-InstallMethod( GetAxialRep,
+	InstallMethod( GetAxialRep,
 	[IsString,IsString],
 	function( th, G )
 	local file;
@@ -52,8 +52,7 @@ InstallMethod( GetAxialRep,
 	local ff;
 	ff := Filtered(
 		GetAxialRep(th,StructureDescription(S:short)),
-		R -> HasShape(Trgp(R)) ## always, right?
-			and AreIsomorphicShapes(Trgp(R),S) );
+		R -> AreIsomorphicShapes(Trgp(R),S) );
 	if Length(ff)>1 then Error("handle more than one alg, same shape");
 	elif Length(ff)=1 then return ff[1];
 	else return ff; fi;

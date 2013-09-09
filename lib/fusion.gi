@@ -19,6 +19,14 @@ InstallMethod( Fusion,
 		return R;
 	end
 );
+	InstallMethod( \=, "for two fusions",
+		[IsFusion,IsFusion],
+		function( f,g )
+		return CentralCharge(f) = CentralCharge(g)
+			and Fields(f) = Fields(g)
+			and f!.tbl = g!.tbl;
+		end
+		);
 	InstallMethod( ViewString,
 		[IsFusion],
 		T -> Concatenation(
@@ -55,7 +63,7 @@ InstallMethod( Subfusion,
 			List(F!.tbl{pos}{pos},r->List(r,e->Filtered(e,f->f in ff))),
 			tag );
 	end
-);
+	);
 InstallMethod( Miyamoto,
 	[IsFusion],
 	function( th )
@@ -71,7 +79,7 @@ InstallMethod( Miyamoto,
 		fi;
 	od;
 	end
-);
+	);
 InstallMethod( MiyamotoFixedFusion,
 	[IsFusion],
 	function( th )
@@ -81,7 +89,22 @@ InstallMethod( MiyamotoFixedFusion,
 		else return Subfusion( th, Filtered(Fields(th),f->not f in m),
 			Concatenation( Tag(th),"-mfix" ) ); fi;
 		end
+	);
+InstallMethod( ChangeFields,
+	[IsFusion,IsList,IsString],
+	function( fus, fields, tag )
+		return Fusion(
+			CentralCharge(fus),
+			fields,
+			List( [1..Fields(fus)], i ->
+				List( [1..Fields(fus)], j ->
+					List( Fuse(fus)(Fields(fus)[i],Fields(fus)[j]),
+					f -> fields[Position(Fields(fus))] ) ) ),
+			tag
+		);
+	end
 );
+
 
 InstallMethod( VirasoroFusion,
 	[IsPosInt,IsPosInt],
@@ -119,6 +142,8 @@ InstallMethod( VirasoroFusion,
 	);
 	SetIsVirasoroFusion(T,true);
 	SetIsRationalVirasoroFusion(T,true);
+	SetVirasoroP(T,p);
+	SetVirasoroP(T,q);
 	if p = q+1 or p=q-1 then SetIsUnitaryFusion(T,true); fi;
 
 	if p mod 2 = 0
@@ -130,6 +155,10 @@ InstallMethod( VirasoroFusion,
 
 	return T;
 	end
+	);
+	InstallMethod( PrintString,
+	[IsRationalVirasoroFusion],
+	T -> Concatenation("VirasoroFusion(",VirasoroP(T),",",VirasoroQ(T),")")
 );
 
 

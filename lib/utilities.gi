@@ -31,7 +31,7 @@
 		[IsPosInt,IsPosInt],
 		function(m,n)
 		local v;
-		v := List([1..n],i->0);
+		v := [1..n]*0;
 		v[m] := 1;
 		return v;
 		end);
@@ -192,24 +192,43 @@
 		[IsVectorSpace,IsVectorSpace,IsList],
 		function( S, T, Tbl )
 		return function(x,y)
-			local i, j, z;
+			local cx, cy, i, j, z;
 			z := ShallowCopy(Zero(T));
+			cx := Coefficients(Basis(S),x);
+			cy := Coefficients(Basis(S),y);
 			for i in [1..Dimension(S)] do
 				if not (IsZero(x[i]) or IsZero(y[i])) then
 					if not IsBound(Tbl[i][i]) then return fail; # necessary?
-					else z := z + x[i]*y[i]*Tbl[i][i]; fi;
+					else z := z + cx[i]*cy[i]*Tbl[i][i]; fi;
 				fi;
 				for j in [1..i-1] do
-					if (not IsZero(x[i]) and not IsZero(y[j]))
-					or (not IsZero(x[j]) and not IsZero(y[i])) 
+					if (not IsZero(cx[i]) and not IsZero(cy[j]))
+					or (not IsZero(cx[j]) and not IsZero(cy[i])) 
 					then
 						if not IsBound(Tbl[i][j]) then return fail; # necessary?
-						else z := z + (x[i]*y[j]+x[j]*y[i])*Tbl[i][j]; fi;
+						else z := z + (cx[i]*cy[j]+cx[j]*cy[i])*Tbl[i][j]; fi;
 					fi;
 				od;
 			od;
 			return z;
 			end;
+		end
+		);
+	InstallMethod( MultNaive,
+		[IsList,IsList,IsList],
+		function( x,y,tbl )
+		local i, j, z;
+		z := ZeroMutable(x);
+		for i in [1..Length(x)] do
+			if not (IsZero(x[i]) or IsZero(y[i]))
+			then z := z + x[i]*y[i]*tbl[i][i]; fi;
+			for j in [1..i-1] do
+				if (not IsZero(x[i]) and not IsZero(y[j]))
+				or (not IsZero(x[j]) and not IsZero(y[i])) 
+				then z := z + (x[i]*y[j]+x[j]*y[i])*tbl[i][j]; fi;
+			od;
+		od;
+		return z;
 		end
 		);
 	InstallGlobalFunction( InField,

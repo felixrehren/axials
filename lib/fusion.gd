@@ -6,7 +6,7 @@
 FamilyFusion@ := NewFamily("FusionFamily");
 DeclareCategory("IsFusion",IsObject);
 DeclareRepresentation("IsFusionStdRep",
-	IsComponentObjectRep and IsAttributeStoringRep,[]);
+	IsFusion and IsComponentObjectRep and IsAttributeStoringRep,[]);
 TypeFusion@ := NewType(FamilyFusion@,IsFusion and IsFusionStdRep);
 
 DeclareOperation("Fusion",[IsRat,IsList,IsList,IsString]);
@@ -17,10 +17,13 @@ DeclareAttribute("Fuse",IsFusion);
 DeclareOperation("Subfusion",[IsFusion,IsList,IsString]);
 DeclareAttribute("Miyamoto",IsFusion);
 DeclareOperation("MiyamotoFixedFusion",[IsFusion]);
+DeclareOperation("ChangeFields",[IsFusion,IsList,IsString]);
 
 DeclareOperation("VirasoroFusion",[IsPosInt,IsPosInt]);
 DeclareProperty("IsVirasoroFusion",IsFusion);
 DeclareProperty("IsRationalVirasoroFusion",IsVirasoroFusion);
+DeclareAttribute("VirasoroP",IsRationalVirasoroFusion);
+DeclareAttribute("VirasoroQ",IsRationalVirasoroFusion);
 DeclareProperty("IsUnitaryFusion",IsFusion);
 
 ### maybe move this in with shapes

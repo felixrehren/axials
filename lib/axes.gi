@@ -25,6 +25,24 @@ InstallMethod( Vector,
 	return u = v!.v;
 	end
 	);
+	InstallMethod( \<,
+	[IsAttrVector,IsAttrVector],
+	function( u, v )
+	return u!.v < v!.v;
+	end
+	);
+	InstallMethod( \<,
+	[IsAttrVector,IsVector],
+	function( u, v )
+	return u!.v < v;
+	end
+	);
+	InstallMethod( \<,
+	[IsAttrVector,IsVector],
+	function( u, v )
+	return u < v!.v;
+	end
+	);
 	InstallMethod( PrintString,
 	[IsAttrVector],
 	function( v )
@@ -35,50 +53,6 @@ InstallMethod( Vector,
 InstallMethod( Ad,
 	[IsAttrVector and HasAlg],
 	v -> Ad(Alg(v))(Vector(v))
-);
-
-InstallMethod( Axis,
-	[IsAlg,IsGeneralizedRowVector,IsFusion],
-	function( A, v, th )
-	local a;
-	a := Objectify(
-		TypeAttrVector@,
-		rec(
-			v := v,
-		)
-	);
-	SetAlg(a,A);
-	SetFusion(a,th);
-	SetIsIdempotent(a,true);
-	return a;
-	end
-	);
-	InstallMethod( Axis,
-	[IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse,IsFunction],
-	function( A, v, th, g, tau )
-	local a;
-	a := Axis(A,v,th);
-	SetInvolution(a,g);
-	SetMiyamoto(a,tau);
-	return a;
-	end
-	);
-	InstallMethod( ViewString,
-	[IsAxis],
-	a -> "axis"
-	);
-	InstallMethod( Miyamoto,
-	[IsAxis],
-	function(a)
-		local fs;
-		fs := List(Fields(Fusion(a)),function(f)
-			if f in Miyamoto(Fusion(a)) then return -1;
-			else return 1; fi; end);
-		return function(x) local d;
-			d :=AxisHelper@.splitVector(a,x,Fields(Fusion(a)));
-			return Sum([1..Length(d)],i->fs[i]*d[i]);
-			end;
-		end
 );
 
 InstallValue( AxisHelper@,
@@ -148,7 +122,8 @@ InstallValue( AxisHelper@,
 			local vv, i, eigvmat;
 			vv := [v];
 			for i in [1..Length(eigv)-1] do
-				if LastNonzeroPos(v) > Dimension(Alg(a)) then return fail; fi;
+				#if LastNonzeroPos(v) > Dimension(Alg(a)) then return fail; fi;
+				if not v in Alg(a) then return fail; fi;
 				v := Mult(Alg(a))(Vector(a),v);
 				if v = fail then return fail; fi;
 				Add(vv,v);
@@ -232,6 +207,52 @@ InstallValue( AxisHelper@,
 			return new;
 			end
 	)
+);
+
+InstallMethod( Axis,
+	[IsAlg,IsGeneralizedRowVector,IsFusion],
+	function( A, v, th )
+	local a;
+	a := Objectify(
+		TypeAttrVector@,
+		rec(
+			v := v,
+		)
+	);
+	SetAlg(a,A);
+	SetFusion(a,th);
+	SetIsIdempotent(a,true);
+	return a;
+	end
+	);
+	InstallMethod( Axis,
+	[IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse,IsFunction],
+	function( A, v, th, g, tau )
+	local a;
+	a := Axis(A,v,th);
+	SetInvolution(a,g);
+	SetMiyamoto(a,tau);
+	return a;
+	end
+	);
+	InstallMethod( ViewString,
+	[IsAxis],
+	a -> "axis"
+	);
+	InstallMethod( Miyamoto,
+	[IsAxis],
+	function(a)
+		local fs;
+		fs := List(Fields(Fusion(a)),function(f)
+			if f in Miyamoto(Fusion(a)) then return -1;
+			else return 1; fi; end);
+		if IsEmpty(fs) then return BasisVectors(Basis(Alg(a))); fi;
+		return List(Basis(Alg(a)),function(x) local d;
+			d := AxisHelper@.splitVector(a,x,Fields(Fusion(a)));
+			return Sum([1..Length(d)],i->fs[i]*d[i]);
+			end
+		);
+		end
 );
 
 InstallMethod( IsIdempotent,
