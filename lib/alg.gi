@@ -57,7 +57,7 @@ InstallValue( AlgHelper@, rec(
 	, idempotentSolns := function( A, i )
 			local time, rr, ord, solns, r, lm, ss, s;
 			time := Runtime();
-			rr := FilteredNot(Mult(A)(i,i)-i,IsZero);
+			rr := FilteredNot(MultNaive(i,i,A!.MT)-i,IsZero);
 			if IsEmpty(rr) then return [InField(i)];
 			elif ForAny(rr,r->InField(r)<>fail) then return []; fi;
 			r := First(rr,IsUnivariatePolynomial);
@@ -170,6 +170,7 @@ InstallMethod( Alg,
 	[IsAlg], # 1-dim'l algs??
 	function( A )
 	return function( v )
+		if IsZero(v) then return Basis(A)*Zero(LeftActingDomain(A)); fi;
 		return Sum( FilteredPositions(v,x->not IsZero(x)),
 			i -> v[i]*Concatenation(
 				List([1..i],j->A!.MT[i][j]),
@@ -183,6 +184,16 @@ InstallMethod( Alg,
 	function( A, V )
 	return function( v )
 		return List(Basis(V),b->Coefficients(Basis(V),Mult(A)(v,b))); end;
+	end
+	);
+InstallMethod( ChangeField,
+	[IsAlg,IsField],
+	function( A, F )
+	if Characteristic(A) = Characteristic(F)
+	then return A;
+	elif not Characteristic(A) = 0
+	then return fail; fi;
+	return Alg( F^Dimension(A), F^Dimension(Closure(A)), A!.MT*One(F) );
 	end
 );
 
@@ -248,6 +259,21 @@ InstallMethod( CloseUnderMult,
 	return W;
 	end
 	);
+InstallMethod( CloseUnderMult,
+	[IsVectorSpace,IsAlg],
+	function(V,A)
+	local W, X, Y;
+	W := V;
+	X := V;
+	while true do
+		X := ImageUnderMult( X,W,A );
+		Y := W + X;
+		if Dimension(Y) = Dimension(W) then break;
+		else W := Y; fi;
+	od;
+	return W;
+	end
+	);
 InstallMethod( IdealClosure,
 	[IsAlg,IsVectorSpace],
 	function( A, V )
@@ -271,14 +297,54 @@ InstallMethod( CloseUnder,
 		return W;
 		end
 );
-InstallMethod( Subalg,
+
+InstallMethod( DerivedSubalg,
 	[IsAlg,IsVectorSpace],
 	function( A, V )
-		local W;
-		#W := CloseUnderMult(V,V itself again!!,A);
-		#then prep MT
+	local W;
+	W := CloseUnderMult(V,A);
+	return Alg( LeftActingDomain(W)^Dimension(W),
+		List([1..Length(Basis(W))],i ->
+		List([1..i],j -> Coefficients(Basis(W),Mult(A)(Basis(W)[i],Basis(W)[j])) ))
+	);
 	end
 	);
+InstallMethod( SpanningWords,
+	[IsAlg,IsList,IsFunction],
+	function( A, letters, map )
+	local words, mb, mult, newwords, l, dim, n, v;
+	words := [];
+	mb := MutableBasis( LeftActingDomain(A), [], Zero(A) );
+	mult := function( w )
+		if IsList(w) then return Mult(A)(mult(w[1]),mult(w[2]));
+		else return map(w); fi; end;
+	newwords := letters;
+	l := 1;
+	while true do
+		dim := NrBasisVectors(mb);
+		for n in newwords do
+			v := SiftedVector( mb, mult(n) );
+			if not IsZero(v) then
+				Add(words,n);
+				CloseMutableBasis(mb,v);
+				if NrBasisVectors(mb) = Dimension(A) then return words; fi;
+			fi;
+		od;
+		if NrBasisVectors(mb) = dim then return fail; fi;
+		newwords := Sorted(Filtered(Cartesian(words,words),w->Length(Flat([w]))>l),Length);
+		l := l + 1;
+	od;
+	end
+	);
+InstallMethod( Rebase, "for an alg",
+	[IsAlg],
+	A -> Alg(
+		LeftActingDomain(A)^Dimension(A),
+		LeftActingDomain(A)^Dimension(Closure(A)),
+		List( [1..Dimension(A)], i -> List( [1..i], j -> 
+			Coefficients(Basis(Closure(A)), A!.MT[i][j]) ) )
+	)
+);
 
 InstallMethod( IncreaseClosure,
 	[IsAlg],
@@ -353,7 +419,7 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 		local B, i;
 		B := Basis(V);
 		i := Sum([1..Dimension(V)], i -> Indeterminate(LeftActingDomain(A),i)*B[i]);
-		return Set(AlgHelper@.idempotentSolns(A,i));
+		return InField(Set(AlgHelper@.idempotentSolns(A,i)));
 	end
 	);
 	InstallMethod( Idempotents, "in subspace of an axial alg",
@@ -378,4 +444,20 @@ InstallMethod( AssociativeSubalgebras, "in subspace of an axial alg",
 	InstallMethod( AssociativeSubalgebras, "of an axial alg",
 	[IsAlg and IsClosed],
 	A -> AssociativeSubalgebras(A,A)
+	);
+InstallMethod( UnitaryRationalVirasoroAxes,
+	[IsAlg and IsClosed and HasFT],
+	function( A )
+  local is, ccs, pos, x;
+	is := Idempotents(A);
+	ccs := List(is,i->1/2*Form(A)(i,i));
+	pos := Filtered([1..Length(is)],i->ccs[i]<1 and ccs[i]>0);
+	is := is{pos};
+	ccs := ccs{pos};
+	x := Indeterminate( Rationals );
+	return List([1..Length(is)], function(i) local j;
+		j := First( RootsOfPolynomial( x^2 + x - 6/(1-ccs[i]) ), IsPosInt );
+		return Axis( A, is[i], VirasoroFusion(j,j+1) ); end
+	);
+	end
 );

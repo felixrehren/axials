@@ -23,15 +23,20 @@ DeclareOperation( "Alg", [IsVectorSpace,IsList] );
 DeclareOperation( "Alg", [IsVectorSpace,IsVectorSpace,IsList] );
 DeclareOperation( "Alg", [IsPosInt,IsList] );
 DeclareOperation( "Alg", [IsPosInt,IsPosInt,IsList] );
+DeclareOperation( "ChangeField", [IsAlg,IsField] );
 
 DeclareOperation( "CloseUnderAct", [IsVectorSpace,IsGroup,IsFunction] );
 DeclareOperation( "ImageUnderMult", [IsVectorSpace,IsVectorSpace,IsAlg] );
 DeclareOperation( "ImageUnderMult", [IsVector,IsVectorSpace,IsAlg] );
 DeclareOperation( "CloseUnderMult", [IsVectorSpace,IsVectorSpace,IsAlg] );
+DeclareOperation( "CloseUnderMult", [IsVectorSpace,IsAlg] );
 DeclareOperation( "CloseUnder",
 	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsAlg] );
 DeclareOperation( "IdealClosure", [IsAlg,IsVectorSpace] );
-DeclareOperation( "Subalg", [IsAlg,IsVectorSpace] );
+
+DeclareOperation( "DerivedSubalg", [IsAlg,IsVectorSpace] );
+DeclareOperation( "SpanningWords", [IsAlg,IsList,IsFunction] );
+DeclareOperation( "Rebase", [IsAlg] );
 
 DeclareOperation( "IncreaseClosure", [IsAlg] );
 DeclareOperation( "AddRelations", [IsAlg,IsVectorSpace] );
@@ -46,3 +51,4 @@ DeclareAttribute( "Idempotents", IsAlg and IsClosed );
 DeclareOperation( "Idempotents", [IsAlg and IsClosed,IsVectorSpace] );
 DeclareAttribute( "AssociativeSubalgebras", IsAlg and IsClosed );
 DeclareOperation( "AssociativeSubalgebras", [IsAlg and IsClosed,IsVectorSpace]);
+DeclareOperation( "UnitaryRationalVirasoroAxes", [IsAlg and IsClosed and HasFT] );

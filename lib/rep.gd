@@ -32,14 +32,18 @@ DeclareOperation( "Im", [IsMapping,IsAxialRep] );
 DeclareOperation( "IdealClosure", [IsAxialRep,IsVectorSpace] );
 DeclareOperation( "Quotient", [IsAxialRep,IsVectorSpace] );
 DeclareOperation( "IncreaseClosure", [IsAxialRep] );
-DeclareOperation( "Subrepresentation", [IsAxialRep,IsGroup] );
+DeclareOperation( "ChangeField", [IsAxialRep,IsField] );
+DeclareOperation( "Rebase", [IsAxialRep] );
 
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion,IsGroup,IsList] );
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion] );
 DeclareOperation( "FindAxialRep", [IsGroup,IsSakuma,IsFusion] );
 DeclareOperation( "FindUniversalAxialRep", [IsTrgp,IsFusion] );
+DeclareOperation( "AxialSubrep", [IsAxialRep,IsGroup] );
+DeclareOperation( "FindAxialRep", [IsList] );
+DeclareOperation( "FindOtherSakumas", [IsAxialRep] );
 
 DeclareOperation( "FindForm", [IsAxialRep] );
 DeclareOperation( "Explode", [IsAxialRep] );
+DeclareOperation( "FindShape", [IsAxialRep] );
 
-DeclareOperation( "ChangeField", [IsAxialRep,IsField] );
