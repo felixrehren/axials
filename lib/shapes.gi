@@ -59,6 +59,7 @@ InstallMethod( Shapes,
 		function(sh)
 		local S;
 		S := TrgpNC(T,Transpositions(T));
+		SetPairs(S,Pairs(T));
 		SetShape(S,Representative(sh));
 		return S; end
 	);
@@ -111,7 +112,9 @@ InstallMethod( Description, "for a trgp with shape",
 	SetFilterObj(S,HasShape);
 	Remove(txt);Remove(txt);
 	txt := Concatenation(txt,
-		",\n\t",PrintString(Shape(S)),"\n)");
+		",\n\t",PrintString(
+			List([1..Length(Pairs(S))],i->[Pairs(S)[i],Shape(S)[i]])
+		),"\n)");
 	return txt;
 	end
 );
@@ -121,7 +124,8 @@ InstallMethod( ImagesSet,"for a transposition group with shape",
   return TranspositionGroup(
 		Image(f),
 		Image(f,Transpositions(S)),
-		Shape(S) );
+		List([1..Length(Pairs(S))],i->[List(Pairs(S)[i],x->x^f),Shape(S)[i]])
+	);
 	end
 );
 
@@ -133,15 +137,12 @@ InstallMethod( TranspositionGroup,
 	);
 	InstallMethod( TrgpNC,
 	[IsGroup,IsCollection,IsList],
-	function( G, D, Sh )
-	local H;
-	H := DuplicateGroup(G);
-	ResetFilterObj( H, HasTranspositions );
-	SetTranspositions(H,D);
-	SetShape(H,Sh);
-	ResetFilterObj( H, HasAutomorphismGroup );
-	Unbind( H!.AutomorphismGroup ); # forcibly remove
-	return H;
+	function( G, D, X )
+	local T;
+	T := TrgpNC( G, D );
+	SetPairs(T,List(X,x->x[1]));
+	SetShape(T,List(X,x->x[2]));
+	return T;
 	end
 	);
 InstallMethod( IsIsomOfShapes,
@@ -187,7 +188,7 @@ InstallMethod( Subshape,
 	return T;
 	end
 	);
-InstallMethod( Subshape,
+	InstallMethod( Subshape,
 	[HasShape,IsGroup],
 	function( R, H )
   local S;
