@@ -479,44 +479,37 @@ InstallMethod( AxialSubrep,
 InstallMethod( FindAxialRep,
 	[IsList],
 	function( aa )
-  local W, A, mm, M, vv, vvv, phi, gg, z, l, i, G, psi, f;
+  local M, vv, mm, F, rels, i, j, G, T, gg, f, sw, sv;
 	if not ForAll(aa,a->Fusion(a) = Fusion(aa[1]) and Alg(a) = Alg(aa[1]))
 	then return fail; fi;
-	W := CloseUnderMult(Subspace(Alg(aa[1]),List(aa,Vector)),Alg(aa[1]));
-	A := DerivedSubalg(Alg(aa[1]),W);
-	mm := List(aa,Miyamoto);
-	M := Group( mm );
-	vv := List(aa,Vector);
-	vvv := Concatenation(Orbits(M,vv));
-	phi := ActionHomomorphism(M,vvv);
-	gg := List(mm,m->m^phi);
-	z := ();
-	l := LargestMovedPoint(gg);
-	for i in FilteredPositions(gg,IsOne) do
-		z := z*(l+1,l+2);
-		gg[i] := (l+1,l+2);
-		l := LargestMovedPoint(z);
-	od;
-	for i in [1..Length(gg)] do
-		if FirstPosition(gg,g->g=gg[i]) <> i
-		then gg[i] := gg[i]*z; fi;
-	od;
-	G := Group(gg);
-	psi := GroupHomomorphismByImagesNC( G, M, gg, mm );
-	f := function(g)
-		local h, r;
-		for h in gg do r := RepresentativeAction(G,h,g);
-		if not r = fail
-		then return Coefficients(Basis(W),vv[Position(gg,h)]^Image(psi,r));
-		fi; od;
-		return fail;
+	M := Group( List(aa,Miyamoto) );
+	vv := Concatenation(Orbits(M,List(aa,Vector)));
+	mm := List(vv,v->Miyamoto(Axis(Alg(aa[1]),v,Fusion(aa[1]))));
+	F := FreeGroup( Size(vv) );
+	rels := [];
+	for i in [1..Size(vv)] do
+		for j in [1..Size(vv)] do
+			Add(rels,F.(i)^F.(j)*F.(Position(vv,vv[i]^mm[j])));
+	od; od;
+	G := F / rels;
+	T := AsSmallerPermTrgp( Trgp( G,List([1..Size(vv)],i->G.(i)) ) );
+	gg := GeneratorsOfGroup(T);
+	f := function(g) local p;
+		if IsList(g) then return Mult(Alg(aa[1]))(f(g[1]),f(g[2])); fi;
+		p := Position(gg,g);
+		if p = fail then return fail;
+		else return vv[p]; fi;
 	end;
+	sw := SpanOfWords( Alg(aa[1]),AxialRepHelper@.closedAlphabet(T,gg),f );
+	sv := List(sw,f);
+	sv := BasisNC(SubspaceNC(Alg(aa[1]),sv,"basis"),sv);
 	return AxialRep(
 		Fusion(aa[1]),
-		Trgp( G, gg ),
-		A,
-		CreateDictionary(AxialRepHelper@.closedAlphabet(G,gg),f),
-		SpanningWords( A,AxialRepHelper@.closedAlphabet(G,gg),f )
+		T,
+		DerivedSubalg( Alg(aa[1]), sv ),
+		CreateDictionary(AxialRepHelper@.closedAlphabet(T,gg),
+			g -> Coefficients(sv,f(g))),
+		sw
 	);
 	end
 );
@@ -566,14 +559,14 @@ InstallMethod( FindForm,
 		for i in [1..Dimension(A)] do
 			for j in [1..i] do
 				if not IsBound(ft[i][j]) then
-					x := Indeterminate(LeftActingDomain(Alg(R)),c);
+					x := Indeterminate(LeftActingDomain(A),c);
 					c := c + 1;
 					for p in Orbit( Symmetries(R),Basis(A){[i,j]},function( om, g )
 						return List(om,v->R!.act(v,g)); end ) do
 						tails := List(p,tail);
-						y := [Mult(A,LeftActingDomain(Alg(R)),ft)(p[1]-tails[1],tails[2]),
-						 Mult(A,LeftActingDomain(Alg(R)),ft)(p[2]-tails[2],tails[1]),
-						 Mult(A,LeftActingDomain(Alg(R)),ft)(tails[1],tails[2])];
+						y := [Mult(A,LeftActingDomain(A),ft)(p[1]-tails[1],tails[2]),
+						 Mult(A,LeftActingDomain(A),ft)(p[2]-tails[2],tails[1]),
+						 Mult(A,LeftActingDomain(A),ft)(tails[1],tails[2])];
 						if ForAll(y,z->z<>fail) then
 							pos := List(p,LastNonzeroPos);
 							xg := (x - Sum(y))/(p[1][pos[1]]*p[2][pos[2]]);
@@ -632,19 +625,41 @@ InstallMethod( Explode,
 InstallMethod( FindShape,
 	[IsAxialRep],
 	function( R )
-	local sh, p, S, o, T;
+	local sh, p, S, o, T, newshape, usedlabels, newcl, VS;
 	#if HasShape(Trgp(R)) then return Shape(Trgp(R)); fi;
 	sh := [];
+	Trgp(R)!.Pairs := Sorted(Pairs(Trgp(R)),p->Order(Product(p)));
 	for p in Pairs(Trgp(R)) do
 		S := Rebase(FindAxialRep(List(p,t->Axis(Alg(R),R!.map(t),Fusion(R)))));
 		o := Order(Product(p));
-		T := Filtered( GetAxialRep(Fusion(R),Dih(2*o)),
+		T := Filtered( GetAxialRep(Fusion(R),Trgp(S)),
 			R -> Dimension(Alg(R)) = Dimension(Alg(S))
 			and ForAll( Shape(Trgp(R)),cl -> o mod cl[1] = 0 )
 			and Alg(R)!.MT = Alg(S)!.MT
 		);
-		if Length(T) <> 1 then Error(); fi;
-		Add( sh, Sorted(Shape(Trgp(T[1])),cl -> -cl[1]) );
+		if Length(T) = 1
+			then Add( sh, Sorted(Shape(Trgp(T[1])),cl -> -cl[1])[1] );
+		elif Length(T) < 1 then
+			usedlabels := Concatenation(List(GetAxialRep(Fusion(R),Trgp(S)),
+				Q -> First(Shape(Trgp(Q)),cl->cl[1] = o)[2]));
+			newcl := [o,
+				List([First(List([65..90],CharInt),A->not A in usedlabels)],IdFunc)];
+			Add( sh, newcl );
+			newshape := List(Filtered(Pairs(Trgp(S)),q->Order(Product(q))<o),
+				q -> sh[FirstPosition(Pairs(Trgp(R)),p->
+					RepresentativeAction(Trgp(R),q,p,OnSets)<>fail)]
+			);
+			Add(newshape,newcl);
+			VS := ViewString(S);
+			SetShape(Trgp(S),newshape);
+			if UserChoice(Concatenation(
+				"no shape recognised for ",VS,
+				" with ",ViewString(Fusion(S)),";\n",
+				"proposed new shape: ",ShapeStr(Shape(Trgp(S))),"\n",
+				"1 = add to library, 2 = don't"),
+				[1,2]
+			) = 1 then WriteAxialRep(S); fi;
+		else return fail; fi;
 	od;
 	SetShape(Trgp(R),sh);
 	return sh;
