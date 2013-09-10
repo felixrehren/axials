@@ -192,21 +192,19 @@
 		[IsVectorSpace,IsVectorSpace,IsList],
 		function( S, T, Tbl )
 		return function(x,y)
-			local cx, cy, i, j, z;
+			local i, j, z;
 			z := ShallowCopy(Zero(T));
-			cx := Coefficients(Basis(S),x);
-			cy := Coefficients(Basis(S),y);
 			for i in [1..Dimension(S)] do
 				if not (IsZero(x[i]) or IsZero(y[i])) then
 					if not IsBound(Tbl[i][i]) then return fail; # necessary?
-					else z := z + cx[i]*cy[i]*Tbl[i][i]; fi;
+					else z := z + x[i]*y[i]*Tbl[i][i]; fi;
 				fi;
 				for j in [1..i-1] do
-					if (not IsZero(cx[i]) and not IsZero(cy[j]))
-					or (not IsZero(cx[j]) and not IsZero(cy[i])) 
+					if (not IsZero(x[i]) and not IsZero(y[j]))
+					or (not IsZero(x[j]) and not IsZero(y[i])) 
 					then
 						if not IsBound(Tbl[i][j]) then return fail; # necessary?
-						else z := z + (cx[i]*cy[j]+cx[j]*cy[i])*Tbl[i][j]; fi;
+						else z := z + (x[i]*y[j]+x[j]*y[i])*Tbl[i][j]; fi;
 					fi;
 				od;
 			od;
@@ -218,7 +216,7 @@
 		[IsList,IsList,IsList],
 		function( x,y,tbl )
 		local i, j, z;
-		z := ZeroMutable(x);
+		z := ZeroMutable(tbl[1][1]);
 		for i in [1..Length(x)] do
 			if not (IsZero(x[i]) or IsZero(y[i]))
 			then z := z + x[i]*y[i]*tbl[i][i]; fi;

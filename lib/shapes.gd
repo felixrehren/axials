@@ -10,6 +10,7 @@ DeclareOperation("TranspositionGroup",[IsGroup,IsCollection,IsList]);
 DeclareOperation("TrgpNC",[IsGroup,IsCollection,IsList]);
 
 DeclareOperation("Shapes",[IsGroup,IsSakuma]);
+DeclareOperation("ShapeStr",[IsList]);
 DeclareOperation("ShapeStr",[HasShape]);
 DeclareOperation("ShapeStrMlts",[HasShape]);
 

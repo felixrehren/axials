@@ -122,8 +122,7 @@ InstallValue( AxisHelper@,
 			local vv, i, eigvmat;
 			vv := [v];
 			for i in [1..Length(eigv)-1] do
-				#if LastNonzeroPos(v) > Dimension(Alg(a)) then return fail; fi;
-				if not v in Alg(a) then return fail; fi;
+				if LastNonzeroPos(v) > Dimension(Alg(a)) then return fail; fi;
 				v := Mult(Alg(a))(Vector(a),v);
 				if v = fail then return fail; fi;
 				Add(vv,v);
@@ -371,7 +370,7 @@ InstallMethod( Check1Dimnlity,
 InstallMethod( CentralCharge,
 	[IsAttrVector and HasAlg],
 	function( v )
-		if FT(Alg(v)) = fail then return fail;
+		if HasFT(Alg(v)) = false then return fail;
 		else return 1/2*Form(Alg(v))(Vector(v),Vector(v)); fi;
 	end
 	);

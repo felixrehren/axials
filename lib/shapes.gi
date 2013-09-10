@@ -73,8 +73,12 @@ InstallMethod( Shapes,
 	);
 InstallMethod( ShapeStr,
 	[HasShape],
+	S -> ShapeStr(Shape(S))
+	);
+	InstallMethod( ShapeStr,
+	[IsList],
 	S -> Concatenation("(",JoinStringsWithSeparator(
-		List(Shape(S),sh->Concatenation(String(sh[1]),sh[2])),
+		List(S,sh->Concatenation(String(sh[1]),sh[2])),
 		", "),")")
 	);
 	InstallMethod( ShapeStrMlts,

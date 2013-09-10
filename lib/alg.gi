@@ -301,20 +301,25 @@ InstallMethod( CloseUnder,
 InstallMethod( DerivedSubalg,
 	[IsAlg,IsVectorSpace],
 	function( A, V )
-	local W;
-	W := CloseUnderMult(V,A);
-	return Alg( LeftActingDomain(W)^Dimension(W),
-		List([1..Length(Basis(W))],i ->
-		List([1..i],j -> Coefficients(Basis(W),Mult(A)(Basis(W)[i],Basis(W)[j])) ))
+	return DerivedSubalg(A,Basis(CloseUnderMult(V,V)));
+	end
+	);
+InstallMethod( DerivedSubalg,
+	[IsAlg,IsBasis],
+	function( A, B )
+	return Alg( LeftActingDomain(A)^Length(B),
+		List([1..Length(B)],i ->
+		List([1..i],j -> Coefficients(B,Mult(A)(B[i],B[j])) ))
 	);
 	end
 	);
-InstallMethod( SpanningWords,
+InstallMethod( SpanOfWords,
 	[IsAlg,IsList,IsFunction],
 	function( A, letters, map )
 	local words, mb, mult, newwords, l, dim, n, v;
 	words := [];
-	mb := MutableBasis( LeftActingDomain(A), [], Zero(A) );
+	mb := MutableBasis( DefaultField(Concatenation(List(letters,map))),
+		[], Zero(A) );
 	mult := function( w )
 		if IsList(w) then return Mult(A)(mult(w[1]),mult(w[2]));
 		else return map(w); fi; end;
@@ -330,7 +335,7 @@ InstallMethod( SpanningWords,
 				if NrBasisVectors(mb) = Dimension(A) then return words; fi;
 			fi;
 		od;
-		if NrBasisVectors(mb) = dim then return fail; fi;
+		if NrBasisVectors(mb) = dim then return words; fi;
 		newwords := Sorted(Filtered(Cartesian(words,words),w->Length(Flat([w]))>l),Length);
 		l := l + 1;
 	od;

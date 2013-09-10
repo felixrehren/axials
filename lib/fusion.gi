@@ -30,7 +30,7 @@ InstallMethod( Fusion,
 	InstallMethod( ViewString,
 		[IsFusion],
 		T -> Concatenation(
-			"Fusion ",Tag(T),
+			"fusion ",Tag(T),
 			" of central charge ",String(CentralCharge(T))
 		)
 		);
@@ -86,8 +86,7 @@ InstallMethod( MiyamotoFixedFusion,
 		local m;
 		m := Miyamoto(th);
 		if m = [] then return th;
-		else return Subfusion( th, Filtered(Fields(th),f->not f in m),
-			Concatenation( Tag(th),"-mfix" ) ); fi;
+		else return Subfusion(th,Filtered(Fields(th),f->not f in m),Tag(th)); fi;
 		end
 	);
 InstallMethod( ChangeFields,
@@ -143,7 +142,7 @@ InstallMethod( VirasoroFusion,
 	SetIsVirasoroFusion(T,true);
 	SetIsRationalVirasoroFusion(T,true);
 	SetVirasoroP(T,p);
-	SetVirasoroP(T,q);
+	SetVirasoroQ(T,q);
 	if p = q+1 or p=q-1 then SetIsUnitaryFusion(T,true); fi;
 
 	if p mod 2 = 0
@@ -158,7 +157,8 @@ InstallMethod( VirasoroFusion,
 	);
 	InstallMethod( PrintString,
 	[IsRationalVirasoroFusion],
-	T -> Concatenation("VirasoroFusion(",VirasoroP(T),",",VirasoroQ(T),")")
+	T -> Concatenation( "VirasoroFusion(",
+		String(VirasoroP(T)),",",String(VirasoroQ(T)),")" )
 );
 
 
