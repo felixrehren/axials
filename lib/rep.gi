@@ -162,8 +162,15 @@ InstallValue( AxialRepHelper@, rec(
 			sr := AxialRepHelper@.getSubreps(T,sym,fus,LeftActingDomain(A));
 			if sr = fail then return fail; fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
+			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
 
-			return R;
+			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
+			return Quotient( R,
+				Subspace(Alg(R),
+					List([1..Length(SpanningWords(R))],
+						i -> Basis(Alg(R))[i] - R!.map(SpanningWords(R)[i]) ),
+					Zero(Alg(R)) )
+			);
 			end
 	)
 );
@@ -205,18 +212,32 @@ InstallMethod( AxialRep,
 		return AxialRep( Th, T, A, dict, ss );
 	end
 	);
-InstallMethod( IsTrivial,
-	[IsAxialRep],
-	R -> IsTrivial(Alg(R))
-);
-
-InstallMethod( Symmetries,
-	[IsAxialRep],
-	R -> Trgp(R)
-	);
 	InstallMethod( IsTrivial,
 	[IsAxialRep],
 	R -> IsTrivial(Alg(R))
+	);
+	InstallMethod( Symmetries,
+	[IsAxialRep],
+	R -> Trgp(R)
+	);
+	InstallMethod( Axis,
+	[IsAlg,IsGeneralizedRowVector,IsFusion,IsAxialRep,IsMultiplicativeElementWithInverse],
+	function( A, v, th, R, g )
+	local a;
+	a := Axis(A,v,th);
+	SetInvolution(a,g);
+	SetAxialRep(a,R);
+	return a;
+	end
+	);
+	InstallMethod( Axes,
+	[IsAxialRep],
+	function( R )
+	SetAxes( Alg(R),
+		List( Transpositions(Trgp(R)),t->
+			Axis(Alg(R),R!.map(t),Fusion(R),R,t) ) );
+	return Axes( Alg(R) );
+	end
 );
 
 InstallMethod( Alphabet,
@@ -263,16 +284,6 @@ InstallMethod( Alphabet,
 			else return R!.map(w); fi; end;
 		return f;
 		end
-	);
-	
-	InstallMethod( Axes,
-	[IsAxialRep],
-	function( R )
-	SetAxes( Alg(R),
-		List( Transpositions(Trgp(R)),t->
-			Axis(Alg(R),R!.map(t),Fusion(R),t,x->R!.act(x,t)) ) );
-	return Axes( Alg(R) );
-	end
 	);
 InstallMethod( ViewString,
 	[IsAxialRep],
@@ -343,14 +354,6 @@ InstallMethod( IncreaseClosure, "return axial rep considering longer words",
 		return rr; end ))) );
 
 	dict := List(Alphabet(R),a->[a,R!.map(a)+z]);
-	for i in [1..Length(ss)] do
-		if IsList(ss[i]) and not ForAny(ss[i],IsList) and Order(Product(ss[i])) > 2
-		then Append(dict,
-			List(Orbit(Trgp(R),ss[i],OnTuples),w->[Product(w),Mult(B)(w[1],w[2])]));
-			ss[i] := Product(ss[i]);
-		fi;			### can this be backed up by theorem?
-	od;				### do cycles always have unique decompositions into transpositions?
-
 	Info(AxRepInfo,3,"increased dim: ",
 		Dimension(Closure(A)),"+",n-Dimension(Closure(A)));
 	return AxialRep( Fusion(R), Trgp(R), B, dict, ss );
@@ -365,15 +368,22 @@ InstallMethod( IdealClosure,
 InstallMethod( Quotient,
 	[IsAxialRep,IsVectorSpace],
 	function( R, X )
-	local Q, l, li, A;
+	local Q, l, li, mt, i, I, j, A;
 	if IsTrivial(X) then return R; fi;
 	Q := NaturalHomomorphismBySubspace( Closure(Alg(R)), X );
 	if ForAny(Axes(R),a->Vector(a) in Kernel(Q))
 	then return AxialRep(Fusion(R),Trgp(R),Alg(LeftActingDomain(Alg(R))^0,[[]]),CreateDictionary([],IdFunc),[]); fi;
 	l := AlgHelper@.quoBasisPos(Q);
 	li := Intersection([1..Dimension(Alg(R))],l);
-	A := Alg( Length(li), Length(l),
-		List(li,i->List(Intersection([1..i],li),j->Image(Q,Alg(R)!.MT[i][j]))) );
+	mt := List([1..Length(li)],i->[]);
+	for i in [1..Length(li)] do
+		I := Intersection(li,[1..i]);
+		for j in [1..Length(I)] do
+			if IsBound(Alg(R)!.MT[i][I[j]])
+			then mt[i][j] := Image(Q,Alg(R)!.MT[i][I[j]]); fi;
+		od;
+	od;
+	A := Alg( Length(li), Length(l), mt );
 	Info(AxRepInfo,3,"decreased dim: ",Dimension(A),"+",Dimension(Closure(A))-Dimension(A));
 	return AxialRep( Fusion(R), Trgp(R), A,
 		CreateDictionary(Alphabet(R),a->Image(Q,R!.map(a))),
@@ -395,18 +405,7 @@ InstallMethod( ChangeField, "for an axial rep and a (suitable) field",
 		SpanningWords(R)
 	);
 	end
-	);
-InstallMethod( Rebase, "for an axial rep",
-	[IsAxialRep],
-	R -> AxialRep(
-		Fusion(R),
-		Trgp(R),
-		Rebase(Alg(R)),
-		CreateDictionary(Alphabet(R),a->Coefficients(Basis(Alg(R)),R!.map(a))),
-		SpanningWords(R)
-	)
 );
-
 
 InstallMethod( FindAxialRep,
 	[HasShape,IsFusion,IsGroup,IsList],
@@ -517,7 +516,7 @@ InstallMethod( FindAxialRep,
 InstallMethod( FindOtherSakumas,
 	[IsAxialRep],
 	function( R )
-  local A, is, ccs, pos, x, as, OnAxis, ps;
+  local A, is, ccs, pos, x, as, OnAxis, ps, res;
 	if not IsClosed(Alg(R))
 	or not (HasIsUnitaryFusion(Fusion(R)) and IsUnitaryFusion(Fusion(R)))
 	or not (HasIsRationalVirasoroFusion(Fusion(R)) and IsRationalVirasoroFusion(Fusion(R)))
@@ -535,7 +534,9 @@ InstallMethod( FindOtherSakumas,
 			function(om,g) return List(om,o->OnAxis(o,g)); end ),
 		Representative
 	);
-	return List(ps,FindAxialRep);
+	res := List(ps,FindAxialRep);
+	List(res,FindShape);
+	return res;
 	end
 );
 
@@ -630,7 +631,7 @@ InstallMethod( FindShape,
 	sh := [];
 	Trgp(R)!.Pairs := Sorted(Pairs(Trgp(R)),p->Order(Product(p)));
 	for p in Pairs(Trgp(R)) do
-		S := Rebase(FindAxialRep(List(p,t->Axis(Alg(R),R!.map(t),Fusion(R)))));
+		S := FindAxialRep(List(p,t->Axis(Alg(R),R!.map(t),Fusion(R))));
 		o := Order(Product(p));
 		T := Filtered( GetAxialRep(Fusion(R),Trgp(S)),
 			R -> Dimension(Alg(R)) = Dimension(Alg(S))
@@ -649,7 +650,8 @@ InstallMethod( FindShape,
 				q -> sh[FirstPosition(Pairs(Trgp(R)),p->
 					RepresentativeAction(Trgp(R),q,p,OnSets)<>fail)]
 			);
-			Add(newshape,newcl);
+			Perform(FilteredPositions(Pairs(Trgp(S)),q->Order(Product(q))=o),
+				function(i) newshape[i] := newcl; end);
 			VS := ViewString(S);
 			SetShape(Trgp(S),newshape);
 			if UserChoice(Concatenation(

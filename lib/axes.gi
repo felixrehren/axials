@@ -142,14 +142,13 @@ InstallValue( AxisHelper@,
 			return es;
 			end
 	, linEigSp := function( v )
-			local time, B, vimage, vv, ff, eigspBySplit, eigspByMult;
+			local time, B, vv, ff, eigspBySplit, eigspByMult;
 			time := Runtime();
 			if not IsEmpty(Miyamoto(Fusion(v))) then
 				B := Basis(Closure(Alg(v)));
-				vimage := List(B,b->Miyamoto(v)(b));
 				vv := [
-					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i] + vimage[i])),
-					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i] - vimage[i]))
+					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i]+Miyamoto(v)[i])),
+					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i]-Miyamoto(v)[i]))
 				];
 				InfoPro("V+ & V-",time);
 				ff := [
@@ -212,25 +211,13 @@ InstallMethod( Axis,
 	[IsAlg,IsGeneralizedRowVector,IsFusion],
 	function( A, v, th )
 	local a;
-	a := Objectify(
-		TypeAttrVector@,
-		rec(
-			v := v,
-		)
+	a := rec( v := v );
+	ObjectifyWithAttributes(
+		a, TypeAttrVector@,
+		Alg, A,
+		Fusion, th,
+		IsIdempotent, true
 	);
-	SetAlg(a,A);
-	SetFusion(a,th);
-	SetIsIdempotent(a,true);
-	return a;
-	end
-	);
-	InstallMethod( Axis,
-	[IsAlg,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse,IsFunction],
-	function( A, v, th, g, tau )
-	local a;
-	a := Axis(A,v,th);
-	SetInvolution(a,g);
-	SetMiyamoto(a,tau);
 	return a;
 	end
 	);
@@ -246,11 +233,15 @@ InstallMethod( Axis,
 			if f in Miyamoto(Fusion(a)) then return -1;
 			else return 1; fi; end);
 		if IsEmpty(fs) then return BasisVectors(Basis(Alg(a))); fi;
-		return List(Basis(Alg(a)),function(x) local d;
-			d := AxisHelper@.splitVector(a,x,Fields(Fusion(a)));
-			return Sum([1..Length(d)],i->fs[i]*d[i]);
-			end
-		);
+		if HasInvolution(a) and HasAxialRep(a) then
+			return List(Basis(Closure(Alg(a))),b->AxialRep(a)!.act(b,Involution(a)));
+		elif IsClosed(Alg(a)) then 
+			return List(Basis(Alg(a)),function(x) local d;
+				d := AxisHelper@.splitVector(a,x,Fields(Fusion(a)));
+				return Sum([1..Length(d)],i->fs[i]*d[i]);
+				end
+			);
+		else return fail; fi;
 		end
 );
 

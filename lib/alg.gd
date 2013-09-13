@@ -37,7 +37,6 @@ DeclareOperation( "IdealClosure", [IsAlg,IsVectorSpace] );
 DeclareOperation( "DerivedSubalg", [IsAlg,IsVectorSpace] );
 DeclareOperation( "DerivedSubalg", [IsAlg,IsBasis] );
 DeclareOperation( "SpanOfWords", [IsAlg,IsList,IsFunction] );
-DeclareOperation( "Rebase", [IsAlg] );
 
 DeclareOperation( "IncreaseClosure", [IsAlg] );
 DeclareOperation( "AddRelations", [IsAlg,IsVectorSpace] );

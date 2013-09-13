@@ -39,7 +39,10 @@ DeclareOperation("GetAlgebras",[IsSakuma,IsPosInt]);
 DeclareOperation("SubAlgebras",[IsSakuma,IsList]);
 DeclareOperation("SupAlgebras",[IsSakuma,IsList]);
 DeclareAttribute("Orders",IsSakuma);
+DeclareOperation("Classes",[IsSakuma]);
 
 DeclareGlobalVariable("MajoranaSakuma");
 DeclareGlobalVariable("MajoranaFusion");
 DeclareOperation( "MajoranaShapes", [IsGroup] );
+
+DeclareOperation("ObservedSakuma",[IsFusion]);

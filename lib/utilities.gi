@@ -296,7 +296,7 @@
 	InstallMethod( InfoPro,
 		[IsString,IsPosInt],
 		function( str, time )
-		if Runtime() - time > 30000
+		if InfoLevel(pro)>2 or Runtime() - time > 30000
 		then Info( pro, 1, str, ": ", ElapseStr(time) ); fi;
 		end
 	);

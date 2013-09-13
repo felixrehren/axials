@@ -26,6 +26,7 @@ DeclareProperty ( "IsTrivial", IsAxialRep );
 DeclareAttribute( "Alphabet", IsAxialRep );
 DeclareAttribute( "InWords", IsAxialRep );
 DeclareAttribute( "FromWord", IsAxialRep );
+DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion,IsAxialRep,IsMultiplicativeElementWithInverse] );
 DeclareAttribute( "Axes", IsAxialRep );
 
 DeclareOperation( "Im", [IsMapping,IsAxialRep] );
@@ -33,7 +34,6 @@ DeclareOperation( "IdealClosure", [IsAxialRep,IsVectorSpace] );
 DeclareOperation( "Quotient", [IsAxialRep,IsVectorSpace] );
 DeclareOperation( "IncreaseClosure", [IsAxialRep] );
 DeclareOperation( "ChangeField", [IsAxialRep,IsField] );
-DeclareOperation( "Rebase", [IsAxialRep] );
 
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion,IsGroup,IsList] );
 DeclareOperation( "FindAxialRep", [HasShape,IsFusion] );

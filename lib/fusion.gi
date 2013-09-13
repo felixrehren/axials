@@ -183,12 +183,20 @@ InstallMethod( Sakuma,
 	end
 	);
 	InstallMethod( ViewString,
-		[IsSakuma],
-		function(S)
-		return Concatenation("a specification of ",String(Length(S!.orders)),
-		" Sakuma (2-generated) algebras (or something)");
-		end
-		);
+	[IsSakuma],
+	function(S)
+	return Concatenation("a specification of ",String(Length(S!.orders)),
+	" Sakuma (2-generated) algebras (or something)");
+	end
+	);
+	InstallMethod( PrintString,
+	[IsSakuma],
+	S -> Concatenation("Sakuma(\n",
+		PrintString( Classes(Sakuma) ),",\n",
+		PrintString( S!.incidence ),
+		"\n)"
+	)
+	);
 InstallMethod( GetAlgebra,
 	[IsSakuma,IsPosInt,IsString],
 	function(Sak,n,X)
@@ -222,9 +230,11 @@ InstallMethod( SupAlgebras,
 	);
 InstallMethod( Orders,
 	[IsSakuma],
-	function(Sak)
-	return Set(Sak!.orders);
-	end
+	Sak -> Set(Sak!.orders)
+	);
+	InstallMethod( Classes,
+	[IsSakuma],
+	Sak -> List([1..Length(Sak!.orders)],i->[Sak!.orders[i],Sak!.letters[i]])
 );
 
 
@@ -255,4 +265,35 @@ InstallMethod( MajoranaShapes,
 	InstallMethod( MajoranaShapes,
 	[IsTrgp],
 	G -> Shapes(G,MajoranaSakuma)
-	);
+);
+
+InstallMethod( ObservedSakuma,
+	[IsFusion],
+	function( fus )
+	local SS, shapes, cl, mat;
+	SS := Concatenation(List(
+		Filtered(GetAxialRep(fus),
+			str -> str = "2^2"
+					or str = "S3"
+			or str[1] = 'D' and ForAll(str{[2..Length(str)]},IsDigitChar)
+		),
+		str -> List(GetAxialRep(fus,str),Trgp)
+	) );
+	shapes := List(SS,Shape);
+	cl := Set(Concatenation(shapes));
+	mat := List([1..Length(cl)],i -> List([1..Length(cl)],function(j)
+		if ForAny(SS,function(S) local pi,pj;
+			pi := FilteredPositions(Shape(S),s->s=cl[i]);
+			if IsEmpty(pi) then return false; fi;
+			pj := FilteredPositions(Shape(S),s->s=cl[j]);
+			if IsEmpty(pj) then return false; fi;
+			return ForAny(pi,p->ForAny(pj,q->q>p and IsOne(IncidencePairs(S)[p][q])));
+			end
+		) then return 1;
+		else return 0; fi;
+		end
+	));
+	return Sakuma( cl,mat );
+	end
+);
+

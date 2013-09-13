@@ -309,7 +309,7 @@ InstallMethod( DerivedSubalg,
 	function( A, B )
 	return Alg( LeftActingDomain(A)^Length(B),
 		List([1..Length(B)],i ->
-		List([1..i],j -> Coefficients(B,Mult(A)(B[i],B[j])) ))
+		List([1..i],j -> Mult(A)(B[i],B[j])*AsList(B)^-1 ))
 	);
 	end
 	);
@@ -318,7 +318,7 @@ InstallMethod( SpanOfWords,
 	function( A, letters, map )
 	local words, mb, mult, newwords, l, dim, n, v;
 	words := [];
-	mb := MutableBasis( DefaultField(Concatenation(List(letters,map))),
+	mb := MutableBasis( DefaultField(Concatenation(Concatenation(Concatenation(A!.MT)),Concatenation(List(letters,map)))),
 		[], Zero(A) );
 	mult := function( w )
 		if IsList(w) then return Mult(A)(mult(w[1]),mult(w[2]));
@@ -340,15 +340,6 @@ InstallMethod( SpanOfWords,
 		l := l + 1;
 	od;
 	end
-	);
-InstallMethod( Rebase, "for an alg",
-	[IsAlg],
-	A -> Alg(
-		LeftActingDomain(A)^Dimension(A),
-		LeftActingDomain(A)^Dimension(Closure(A)),
-		List( [1..Dimension(A)], i -> List( [1..i], j -> 
-			Coefficients(Basis(Closure(A)), A!.MT[i][j]) ) )
-	)
 );
 
 InstallMethod( IncreaseClosure,
@@ -455,7 +446,8 @@ InstallMethod( UnitaryRationalVirasoroAxes,
 	function( A )
   local is, ccs, pos, x;
 	is := Idempotents(A);
-	ccs := List(is,i->1/2*Form(A)(i,i));
+	ccs := InField(List(is,i->1/2*Form(A)(i,i)));
+	if not ForAll(ccs,cc->cc in Rationals) then return fail; fi;
 	pos := Filtered([1..Length(is)],i->ccs[i]<1 and ccs[i]>0);
 	is := is{pos};
 	ccs := ccs{pos};
