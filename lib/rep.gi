@@ -1,4 +1,3 @@
-
 #
 #	create implementation
 #
@@ -377,10 +376,10 @@ InstallMethod( Quotient,
 	li := Intersection([1..Dimension(Alg(R))],l);
 	mt := List([1..Length(li)],i->[]);
 	for i in [1..Length(li)] do
-		I := Intersection(li,[1..i]);
+		I := Intersection(li,[1..li[i]]);
 		for j in [1..Length(I)] do
-			if IsBound(Alg(R)!.MT[i][I[j]])
-			then mt[i][j] := Image(Q,Alg(R)!.MT[i][I[j]]); fi;
+			if IsBound(Alg(R)!.MT[li[i]][I[j]])
+			then mt[i][j] := Image(Q,Alg(R)!.MT[li[i]][I[j]]); fi;
 		od;
 	od;
 	A := Alg( Length(li), Length(l), mt );
