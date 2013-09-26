@@ -16,6 +16,7 @@ DeclareProperty( "IsClosed", IsAlg );
 DeclareAttribute( "Relations", IsAlg );
 
 DeclareAttribute( "Axes", IsAlg );
+DeclareSynonym( "IsAxialAlg", IsAlg and HasAxes );
 
 DeclareGlobalVariable( "AlgHelper@" );
 
@@ -34,6 +35,8 @@ DeclareOperation( "CloseUnder",
 	[IsVectorSpace,IsGroup,IsFunction,IsVectorSpace,IsAlg] );
 DeclareOperation( "IdealClosure", [IsAlg,IsVectorSpace] );
 
+DeclareOperation( "Centraliser", [IsVectorSpace,IsGroup] );
+
 DeclareOperation( "DerivedSubalg", [IsAlg,IsVectorSpace] );
 DeclareOperation( "DerivedSubalg", [IsAlg,IsBasis] );
 DeclareOperation( "SpanOfWords", [IsAlg,IsList,IsFunction] );
@@ -49,6 +52,7 @@ DeclareAttribute( "CentralCharge", IsAlg and IsClosed );
 
 DeclareAttribute( "Idempotents", IsAlg and IsClosed );
 DeclareOperation( "Idempotents", [IsAlg and IsClosed,IsVectorSpace] );
+DeclareOperation( "IsAssociativeSubalgebra", [IsAlg,IsVectorSpace] );
 DeclareAttribute( "AssociativeSubalgebras", IsAlg and IsClosed );
 DeclareOperation( "AssociativeSubalgebras", [IsAlg and IsClosed,IsVectorSpace]);
 DeclareOperation( "UnitaryRationalVirasoroAxes", [IsAlg and IsClosed and HasFT] );

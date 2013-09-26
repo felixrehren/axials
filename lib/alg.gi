@@ -428,6 +428,19 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 	[IsAlg and IsClosed],
 	A -> Idempotents(A,A)
 	);
+InstallMethod( IsAssociativeSubalgebra,
+	[IsAlg,IsVectorSpace],
+	function( A, V )
+	return ForAll( [1..Dimension(V)], i ->
+		ForAll( [1..i], j ->
+			ForAll( [1..j], k ->
+				Mult(A)(Mult(A)(Basis(V)[i],Basis(V)[j]),Basis(V)[k])
+				= Mult(A)(Basis(V)[i],Mult(A)(Basis(V)[j],Basis(V)[k]))
+			)
+		)
+	);
+	end
+	);
 InstallMethod( AssociativeSubalgebras, "in subspace of an axial alg",
 	[IsAlg and IsClosed,IsVectorSpace],
 	function( A, V )
