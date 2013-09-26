@@ -3,12 +3,12 @@
 #	library declarations
 #
 
-DeclareOperation( "DirectoryFusion", [IsFusion] );
-DeclareOperation( "DirectoryFusion", [IsString] );
+DeclareGlobalVariable( "LibHelper@" );
+
 DeclareOperation( "GetAxialRep", [IsFusion] );
-DeclareOperation( "GetAxialRep", [IsString,IsString] );
-DeclareOperation( "GetAxialRep", [IsString,IsGroup] );
-DeclareOperation( "GetAxialRep", [IsFusion,IsString] );
-DeclareOperation( "GetAxialRep", [IsFusion,IsGroup] );
+DeclareOperation( "GetAxialRep", [IsFusion,IsObject] );
 
 DeclareOperation( "WriteAxialRep", [IsAxialRep] );
+
+DeclareOperation( "DeleteAxialRep", [IsAxialRep] );
+DeclareOperation( "DeleteAxialRep", [IsFusion,IsTrgp and HasShape] );
