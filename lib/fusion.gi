@@ -13,7 +13,12 @@ InstallMethod( Fusion,
 			CentralCharge, c,
 			Fields, fields,
 			Fuse, function(f,g)
-				return fusiontbl[Position(fields,f)][Position(fields,g)]; end,
+				local p, q;
+				p := Position(fields,f);
+				if p = fail then return fail; fi;
+				q := Position(fields,g);
+				if q = fail then return fail; fi;
+				return fusiontbl[p][q]; end,
 			Tag, tag
 		);
 		return R;
@@ -131,8 +136,11 @@ InstallMethod( VirasoroFusion,
 			if 0 in virtbl[i][j] then Add(fusiontbl[i+1][j+1],1); fi;
 		od;
 	od;
-	if 0 in fields
-	then fusiontbl[Position(fields,0)][Position(fields,0)] := [0]; fi;
+	i := Position(fields,0);
+	j := Position(fields,1);
+	fusiontbl[i][i] := [0];
+	#fusiontbl[j][i] := [];
+	#fusiontbl[i][j] := [];
 	T := Fusion( 
 		1 - 6*(p-q)^2/(p*q),
 		fields,
@@ -143,7 +151,7 @@ InstallMethod( VirasoroFusion,
 	SetIsRationalVirasoroFusion(T,true);
 	SetVirasoroP(T,p);
 	SetVirasoroQ(T,q);
-	if p = q+1 or p=q-1 then SetIsUnitaryFusion(T,true); fi;
+	if p = q+1 or p = q-1 then SetIsUnitaryFusion(T,true); fi;
 
 	if p mod 2 = 0
 	then SetMiyamoto(T,List(Filtered(pairs,p -> p[1] mod 2 = 0),field)); fi;
