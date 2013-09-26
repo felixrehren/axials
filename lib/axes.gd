@@ -29,10 +29,11 @@ DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion] );
 
 DeclareAttribute( "Relations", IsAxis );
 DeclareOperation( "CheckLinearity", [IsAxis] );
-DeclareOperation( "CheckDirectity", [IsAxis] );
+DeclareOperation( "CheckSemisimplicity", [IsAxis] );
 DeclareOperation( "Check1Dimnlity", [IsAxis] );
 
 DeclareAttribute( "CentralCharge", IsAttrVector and HasAlg );
 DeclareAttribute( "Explosion", IsIdempotent );
+
 
 DeclareGlobalVariable( "AxisHelper@" );

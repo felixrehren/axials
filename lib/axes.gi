@@ -13,18 +13,6 @@ InstallMethod( Vector,
 	return u!.v = v!.v;
 	end
 	);
-	InstallMethod( \=,
-	[IsAttrVector,IsVector],
-	function( u, v )
-	return u!.v = v;
-	end
-	);
-	InstallMethod( \=,
-	[IsAttrVector,IsVector],
-	function( u, v )
-	return u = v!.v;
-	end
-	);
 	InstallMethod( \<,
 	[IsAttrVector,IsAttrVector],
 	function( u, v )
@@ -225,6 +213,13 @@ InstallMethod( Axis,
 	[IsAxis],
 	a -> "axis"
 	);
+	InstallMethod( ViewString,
+	[IsAxis and HasInvolution],
+	a -> Concatenation(
+		"axis of ",
+		PrintString(Involution(a))
+		)
+	);
 	InstallMethod( Miyamoto,
 	[IsAxis],
 	function(a)
@@ -268,15 +263,14 @@ InstallMethod( Eigenspaces,
 	function(v)
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
 		then return Eigenspaces(LeftActingDomain(Alg(v)),Ad(v));
-		else return AxisHelper@.eigspByMult(v);
-		fi;
+		else return AxisHelper@.eigspByMult(v); fi;
 	end
 );
 
 InstallMethod( Relations,
 	[IsAxis],
 	a ->
-	CheckLinearity(a) + CheckDirectity(a) ### not good!
+	CheckLinearity(a) + CheckSemisimplicity(a) ### not good!
 	);
 InstallMethod( CheckLinearity,
 	[IsAxis],
@@ -297,7 +291,7 @@ InstallMethod( CheckLinearity,
 	return S;
 	end
 	);
-InstallMethod( CheckDirectity,
+InstallMethod( CheckSemisimplicity,
 	[IsAxis],
 	function( a )
 	local time, th, composites, pp, II, p, I, i, c, S;
@@ -385,4 +379,13 @@ InstallMethod( Explosion,
 		fi;
 	end
 	);
-
+InstallMethod( FixOfCentraliser,
+	[IsAxialRep,IsAxis and HasInvolution],
+	function( R, a )
+		local M, m, C;
+		M := Miyamoto(R);
+		m := Image(MiyamotoHom(R),Involution(a));
+		C := Centralizer( M, m );
+		return BaseFixedSpace( AsList( C ) );
+	end
+);
