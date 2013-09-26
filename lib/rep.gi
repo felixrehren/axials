@@ -27,26 +27,25 @@ InstallValue( AxialRepHelper@, rec(
 				ans := UserChoice( Concatenation(
 						"missing algebras for\n",
 						JoinStringsWithSeparator(List(ss{misspos},Description),",\n"),"\n",
-						"what would you like to do?\n",
-						"1 = quit, ",
-						"2 = find all, ",
-						"3 = continue without"
+						"what would you like to do?\n"
+						, "1 = quit, "
+						, "2 = find all, "
+						, "3 = continue without "
+						#,"or 0 = error"
 					),
-					[1..4]
+					[0..3]
 				);
 				if ans = 1 then return fail;
 				elif ans = 2 then
 					for m in misspos
 					do rr[m] := FindAxialRep(ss[m],th); od;
-				elif ans = 3 or ans = 4 then
+				elif ans = 3 then
+					for s in ss{misspos}
+					do Append(sr, AxialRepHelper@.getSubreps(s,G,th,field)); od;
 					misspos := Difference([1..Length(ss)],misspos);
-					if ans = 3 then
-						for s in ss{misspos}
-						do Append(sr, AxialRepHelper@.getSubreps(s,G,th,field)); od;
-					fi;
 					ss := ss{misspos};
 					rr := rr{misspos};
-				fi;
+				elif ans = 0 then Error(); fi;
 			fi;
 			
 			ff := List([1..Length(rr)],i->AllShapeIsomClasses(Trgp(rr[i]),ss[i]));
@@ -89,9 +88,12 @@ InstallValue( AxialRepHelper@, rec(
 			fi;
 			end
 	, inSubrep := function( R, S, sym )
-			local tt, bb, alph, dict, s, A, mt, i, rr, c, pos, emb, al, pstnsR, elmtsS, j, v, NewRep;
-			tt := Difference(List(SpanningWords(S),s->AxialRepHelper@.canonSet(Alphabet(R),s)),Alphabet(R));
-			bb := Concatenation(SpanningWords(R),tt);
+			local bb, alph, dict, s, A, mt, i, rr, c, pos, emb, al, pstnsR, elmtsS, j, v, NewRep;
+			bb := ShallowCopy(SpanningWords(R));
+			for s in SpanningWords(S) do
+				s := AxialRepHelper@.canonSet(bb,s);
+				if not s in bb then Add(bb,s); fi;
+			od;
 			alph := AxialRepHelper@.closedAlphabet(Trgp(R),bb);
 			dict := NewDictionary(false,true,alph);
 			for s in Alphabet(R) do AddDictionary(dict,s,R!.map(s)); od;
@@ -103,13 +105,12 @@ InstallValue( AxialRepHelper@, rec(
 
 			for c in List( RightTransversal(Trgp(R),Trgp(S)),
 								t -> ConjugatorIsomorphism(Trgp(R),t) ) do
-				tt := Difference( 
-					List(Recursive(s->s^c)(SpanningWords(S)),
-						t->AxialRepHelper@.canonSet(bb,t)),
-					bb );
-				bb := Concatenation(bb,tt);
+				for s in Recursive(s->s^c)(SpanningWords(S)) do
+					s := AxialRepHelper@.canonSet(bb,s);
+					if not s in bb then Add(bb,s); fi;
+				od;
 				A := LeftActingDomain(A)^Length(bb);
-				for i in [Length(bb)-Length(tt)+1..Length(bb)]
+				for i in Filtered([1..Size(bb)],i->not IsBound(mt[i]))
 				do mt[i] := []; od;
 
 				pos := List(Recursive(s->s^c)(SpanningWords(S)),
@@ -137,13 +138,11 @@ InstallValue( AxialRepHelper@, rec(
 				od;
 			od;
 			A := AlgHelper@.incBasis(Alg(A,mt),0);
-			NewRep := AxialRep( Fusion(R), Trgp(R), Alg(A,mt), dict, bb );
+			NewRep := AxialRep( Fusion(R), Trgp(R), Alg(A,mt),
+				CreateDictionary(alph,a->LookupDictionary(dict,a)+Zero(A)), bb );
 			SetAlphabet(NewRep,alph);
 			rr := Subspace(A,List(rr,r->r+Zero(A)));
-			if HasRelations(Alg(R))
-			then SetRelations(Alg(NewRep),rr+Subspace(Closure(Alg(NewRep)),List(Basis(Relations(Alg(R))),b->b+Zero(Alg(NewRep))),Zero(Alg(NewRep))));
-			else SetRelations(Alg(NewRep),rr); fi;
-			return NewRep;
+			return Quotient(NewRep,rr);
 			end
 	, startAxialRep :=	function( T, fus, sym )
 			local dim, mt, i, A, ss, dict, R, sr, s;
@@ -163,8 +162,8 @@ InstallValue( AxialRepHelper@, rec(
 			if sr = fail then return fail; fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
 			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
-
 			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
+
 			return Quotient( R,
 				Subspace(Alg(R),
 					List([1..Length(SpanningWords(R))],
@@ -237,6 +236,33 @@ InstallMethod( AxialRep,
 		List( Transpositions(Trgp(R)),t->
 			Axis(Alg(R),R!.map(t),Fusion(R),R,t) ) );
 	return Axes( Alg(R) );
+	end
+);
+
+InstallMethod( MiyamotoHom,
+	[IsAxialRep],
+	function( R )
+	local gg, mm; ## or: use Miyamoto functionality on axes
+	gg := GeneratorsOfGroup( Symmetries(R) );
+	mm := List(gg,g -> List(Basis(Closure(Alg(R))),b->R!.act(b,g)) );
+	return GroupHomomorphismByImagesNC( Symmetries(R), GroupByGenerators(mm), gg, mm );
+	end
+	);
+	InstallMethod( Miyamoto,
+	[IsAxialRep],
+	R -> Image(MiyamotoHom(R))
+	);
+InstallMethod( Orbiter,
+	[IsAxialRep],
+	function( R )
+		if ValueOption( "permaction" ) = true
+		then return function( v )
+			if IsList(v[1]) then return Orbits( Symmetries(R),v,R!.act );
+			else return Orbit( Symmetries(R),v,R!.act ); fi; end;
+		else return function( v )
+			if IsList(v[1]) then return Orbits( Miyamoto(R),v );
+			else return Orbit( Miyamoto(R),v ); fi; end;
+		fi;
 	end
 );
 
@@ -362,7 +388,11 @@ InstallMethod( IncreaseClosure, "return axial rep considering longer words",
 InstallMethod( IdealClosure,
 	[IsAxialRep,IsVectorSpace],
 	function( R, V )
-	return CloseUnder( V, Symmetries(R), R!.act, Alg(R), Alg(R) );
+	if ValueOption("permaction") = true then
+		return CloseUnder( V, Symmetries(R), R!.act, Alg(R), Alg(R) );
+	else
+		return CloseUnder( V, Miyamoto(R), OnPoints, Alg(R), Alg(R) );
+	fi;
 	end
 	);
 InstallMethod( Quotient,
@@ -377,10 +407,10 @@ InstallMethod( Quotient,
 	li := Intersection([1..Dimension(Alg(R))],l);
 	mt := List([1..Length(li)],i->[]);
 	for i in [1..Length(li)] do
-		I := Intersection(li,[1..i]);
+		I := Intersection(li,[1..li[i]]);
 		for j in [1..Length(I)] do
-			if IsBound(Alg(R)!.MT[i][I[j]])
-			then mt[i][j] := Image(Q,Alg(R)!.MT[i][I[j]]); fi;
+			if IsBound(Alg(R)!.MT[li[i]][I[j]])
+			then mt[i][j] := Image(Q,Alg(R)!.MT[li[i]][I[j]]); fi;
 		od;
 	od;
 	A := Alg( Length(li), Length(l), mt );
@@ -421,12 +451,13 @@ InstallMethod( FindAxialRep,
 				elif LeftActingDomain(Alg(R)) = Rationals then return R; fi;
 			fi;
 		fi;
+
+		if not IsPermGroup(S) then S := AsSmallPermTrgp(S); fi;
 		R := AxialRepHelper@.startAxialRep(S,fus,sym);
 		if R = fail then return fail; fi;
 		R := IncreaseClosure(R);
 		step := function(R)
 			local ax, a;
-			if Alg(R) = Closure(Alg(R)) then return R; fi;
 			if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
 				then return step(Quotient(R,IdealClosure(R,Relations(Alg(R))))); fi;
 			for ax in axioms do
@@ -435,7 +466,8 @@ InstallMethod( FindAxialRep,
 					if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
 					then return step(R); fi;
 			od; od;
-			return step(IncreaseClosure(R));
+			if Alg(R) = Closure(Alg(R)) then return R;
+			else return step(IncreaseClosure(R)); fi;
 		end;
 		R := step(R);
 		WriteAxialRep(R:overwrite:=false);
@@ -446,11 +478,12 @@ InstallMethod( FindAxialRep,
 	InstallMethod( FindAxialRep,
 		[HasShape,IsFusion],
 		function(S,fus)
-		return FindAxialRep(S,fus,S,[CheckLinearity,CheckDirectity]); end
+		return FindAxialRep(S,fus,S,[CheckLinearity,CheckSemisimplicity]); end
 		);
 	InstallMethod( FindAxialRep,
 		[IsGroup,IsSakuma,IsFusion],
 		function(G,Sak,fus)
+			if not IsPermGroup(G) then G := Image(SmallerDegreePermutationRepresentation(Image(IsomorphismPermGroup(G)))); fi;
 			if IsTrgp(G) then return List(Shapes(G,Sak),s->FindAxialRep(s,fus));
 			else return Concatenation(List(
 				GroupToTrgps(G,Orders(Sak)), t -> FindAxialRep(t,Sak,fus) )); fi;
@@ -463,7 +496,7 @@ InstallMethod( FindUniversalAxialRep,
 		sh := List(Pairs(T),p->[Order(Product(p)),"U"]);
 		if HasShape(T) then T!.Shape := sh; fi;
 		SetShape(T,sh);
-		return FindAxialRep(T,fus,AutomorphismGroup(T),[CheckLinearity,CheckDirectity]);
+		return FindAxialRep(T,fus,AutomorphismGroup(T),[CheckLinearity,CheckSemisimplicity]);
 		end
 	);
 InstallMethod( AxialSubrep,
@@ -491,7 +524,7 @@ InstallMethod( FindAxialRep,
 			Add(rels,F.(i)^F.(j)*F.(Position(vv,vv[i]^mm[j])));
 	od; od;
 	G := F / rels;
-	T := AsSmallerPermTrgp( Trgp( G,List([1..Size(vv)],i->G.(i)) ) );
+	T := AsSmallPermTrgp( Trgp( G,List([1..Size(vv)],i->G.(i)) ) );
 	gg := GeneratorsOfGroup(T);
 	f := function(g) local p;
 		if IsList(g) then return Mult(Alg(aa[1]))(f(g[1]),f(g[2])); fi;
@@ -535,7 +568,7 @@ InstallMethod( FindOtherSakumas,
 		Representative
 	);
 	res := List(ps,FindAxialRep);
-	List(res,FindShape);
+	List(res,RecogniseShape);
 	return res;
 	end
 );
@@ -620,14 +653,17 @@ InstallMethod( Explode,
 			Concatenation(List(II,i->Explode(Quotient(R,i)))),
 			R -> not IsTrivial(R)); fi;
 	od;
+	ResetFilterObj(Trgp(R),HasShape);
 	return [R];
 	end
 	);
-InstallMethod( FindShape,
+InstallMethod( RecogniseShape,
 	[IsAxialRep],
 	function( R )
 	local sh, p, S, o, T, newshape, usedlabels, newcl, VS;
 	#if HasShape(Trgp(R)) then return Shape(Trgp(R)); fi;
+	if not IsClosed(Alg(R)) then return fail; fi;
+	if Dimension(Alg(R)) = 1 then return [[1,"A"]]; fi;
 	sh := [];
 	Trgp(R)!.Pairs := Sorted(Pairs(Trgp(R)),p->Order(Product(p)));
 	for p in Pairs(Trgp(R)) do

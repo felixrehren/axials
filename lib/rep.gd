@@ -21,6 +21,9 @@ DeclareAttribute( "Fusion", IsAxialRep );
 DeclareAttribute( "SpanningWords", IsAxialRep );
 
 DeclareAttribute( "Symmetries", IsAxialRep );
+DeclareAttribute( "Miyamoto", IsAxialRep );
+DeclareAttribute( "MiyamotoHom", IsAxialRep );
+DeclareAttribute( "Orbiter", IsAxialRep );
 DeclareProperty ( "IsTrivial", IsAxialRep );
 
 DeclareAttribute( "Alphabet", IsAxialRep );
@@ -45,5 +48,6 @@ DeclareOperation( "FindOtherSakumas", [IsAxialRep] );
 
 DeclareOperation( "FindForm", [IsAxialRep] );
 DeclareOperation( "Explode", [IsAxialRep] );
-DeclareOperation( "FindShape", [IsAxialRep] );
+DeclareOperation( "RecogniseShape", [IsAxialRep] );
 
+DeclareOperation( "FixOfCentraliser", [IsAxialRep,IsAxis] );
