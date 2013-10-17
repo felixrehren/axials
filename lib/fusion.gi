@@ -139,8 +139,8 @@ InstallMethod( VirasoroFusion,
 	i := Position(fields,0);
 	j := Position(fields,1);
 	fusiontbl[i][i] := [0];
-	#fusiontbl[j][i] := [];
-	#fusiontbl[i][j] := [];
+	fusiontbl[j][i] := [];
+	fusiontbl[i][j] := [];
 	T := Fusion( 
 		1 - 6*(p-q)^2/(p*q),
 		fields,

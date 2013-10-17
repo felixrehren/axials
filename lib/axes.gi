@@ -95,6 +95,7 @@ InstallValue( AxisHelper@,
 			end
 	, solver := function( fields )
 			local P, mat, solns;
+			if Length(fields) = 1 then return IdFunc; fi;
 			P := PolynomialRing(DefaultField(fields),
 				List([1..Length(fields)],i->Indeterminate(DefaultField(fields),i)));
 			mat := List([1..Length(fields)],
@@ -153,12 +154,13 @@ InstallValue( AxisHelper@,
 				i -> eigspBySplit[i] + eigspByMult[i]);
 			end
 	, fusionClose := function( a, eigSp )
-			local time, fields, fminus, fplus, fuse, eigMBs, new, addev, u, v, f, xx, i;
+			local time, fields, fminus, fplus, fuse, rr, eigMBs, new, addev, u, v, f, xx, i;
 			time := Runtime();
 			fields := Fields(Fusion(a));
 			fminus := Set(Miyamoto(Fusion(a)));
 			fplus  := Set(Difference(fields,fminus));
 			fuse := Fuse(Fusion(a));
+			rr := [];
 
 			eigMBs :=List(eigSp,sp -> MutableBasis(LeftActingDomain(Alg(a)),Basis(sp),Zero(Closure(Alg(a)))));
 			new := Concatenation(List([1..Length(fields)],i->
@@ -179,6 +181,7 @@ InstallValue( AxisHelper@,
 				u := new[1];
 				for v in new do
 					f := fuse(u[1],v[1]);
+					if IsEmpty(f) then Add(rr,Mult(Alg(a))(u[2],v[2])); continue; fi;
 					if f = fminus or f = fplus then continue; fi;
 					xx := AxisHelper@.splitVector(a,Mult(Alg(a))(u[2],v[2]),f);
 					if xx = fail then continue; fi;
@@ -188,6 +191,7 @@ InstallValue( AxisHelper@,
 				Remove(new,1);
 			od;
 
+			AddRelations(Alg(a),Subspace(Closure(Alg(a)),rr));
 			new := List(eigMBs,mb -> Subspace(Closure(Alg(a)),BasisVectors(mb)));
 			InfoPro("fusion",time);
 			return new;
@@ -228,8 +232,8 @@ InstallMethod( Axis,
 			if f in Miyamoto(Fusion(a)) then return -1;
 			else return 1; fi; end);
 		if IsEmpty(fs) then return BasisVectors(Basis(Alg(a))); fi;
-		if HasInvolution(a) and HasAxialRep(a) then
-			return List(Basis(Closure(Alg(a))),b->AxialRep(a)!.act(b,Involution(a)));
+		if HasInvolution(a) and HasAxialRep(Alg(a)) then
+			return List(Basis(Closure(Alg(a))),b->AxialRep(Alg(a))!.act(b,Involution(a)));
 		elif IsClosed(Alg(a)) then 
 			return List(Basis(Alg(a)),function(x) local d;
 				d := AxisHelper@.splitVector(a,x,Fields(Fusion(a)));
