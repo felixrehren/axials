@@ -1,6 +1,6 @@
 
 #
-#	create declarations
+#	representations declarations
 #
 
 FamilyAxialRep@ := NewFamily("AxialRepFamily");
@@ -29,8 +29,7 @@ DeclareProperty ( "IsTrivial", IsAxialRep );
 DeclareAttribute( "Alphabet", IsAxialRep );
 DeclareAttribute( "InWords", IsAxialRep );
 DeclareAttribute( "FromWord", IsAxialRep );
-DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion,IsAxialRep,IsMultiplicativeElementWithInverse] );
-DeclareAttribute( "Axes", IsAxialRep );
+DeclareOperation( "Axis", [IsAlg and HasAxialRep,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse] );
 
 DeclareOperation( "Im", [IsMapping,IsAxialRep] );
 DeclareOperation( "IdealClosure", [IsAxialRep,IsVectorSpace] );
@@ -46,7 +45,6 @@ DeclareOperation( "AxialSubrep", [IsAxialRep,IsGroup] );
 DeclareOperation( "FindAxialRep", [IsList] );
 DeclareOperation( "FindOtherSakumas", [IsAxialRep] );
 
-DeclareOperation( "FindForm", [IsAxialRep] );
 DeclareOperation( "Explode", [IsAxialRep] );
 DeclareOperation( "RecogniseShape", [IsAxialRep] );
 

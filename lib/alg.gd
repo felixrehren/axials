@@ -47,7 +47,7 @@ DeclareOperation( "Quotient", [IsAlg,IsVectorSpace] );
 
 DeclareAttribute( "Identity", IsAlg and IsClosed );
 DeclareAttribute( "FT", IsAlg and IsClosed );
-DeclareAttribute( "Form", IsAlg and HasFT );
+DeclareAttribute( "Form", IsAlg );
 DeclareAttribute( "CentralCharge", IsAlg and IsClosed );
 
 DeclareAttribute( "Idempotents", IsAlg and IsClosed );
@@ -56,3 +56,5 @@ DeclareOperation( "IsAssociativeSubalgebra", [IsAlg,IsVectorSpace] );
 DeclareAttribute( "AssociativeSubalgebras", IsAlg and IsClosed );
 DeclareOperation( "AssociativeSubalgebras", [IsAlg and IsClosed,IsVectorSpace]);
 DeclareOperation( "UnitaryRationalVirasoroAxes", [IsAlg and IsClosed and HasFT] );
+
+DeclareAttribute( "AxialRep", IsAlg );

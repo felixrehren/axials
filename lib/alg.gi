@@ -156,7 +156,7 @@ InstallMethod( Alg,
 	);
 	InstallMethod( Closure,
 	[IsAlg],
-	A -> VectorSpace( LeftActingDomain(A), A!.MT, Zero(A) )
+	A -> VectorSpace( LeftActingDomain(A), Concatenation(Concatenation(A!.MT)), Zero(A) )
 	);
 	InstallMethod( IsClosed,
 	[IsAlg],
@@ -403,6 +403,73 @@ InstallMethod( Identity,
 InstallMethod( Form,
 	[IsAlg and HasFT],
 	A -> Mult( A, LeftActingDomain(A), A!.FT )
+	);
+InstallMethod( Form,
+	[IsAlg and HasAxialRep],
+	function( A )
+	local tail, time, R, ft, aa, pp, i, j, x, c, p, tails, y, pos, xg, a, eses, u, v, uv, old, new, r;
+	tail := function(v)
+		local u;
+		u := ShallowCopy(v);
+		u[LastNonzeroPos(u)] := Zero(LeftActingDomain(A));
+		return u; end;
+	time := Runtime();
+	R := AxialRep(A);
+	c := 1;
+	ft := List([1..Dimension(A)],j->[]);
+	aa := Union(List(Transpositions(Trgp(R)),t->t^Trgp(R)));
+	pp := FilteredPositions(SpanningWords(R),w->not IsList(w) and w in aa);
+	for i in pp
+	do ft[i][i] := 2*CentralCharge(Fusion(R)); od;
+	for i in [1..Dimension(A)] do
+		for j in [1..i] do
+			if not IsBound(ft[i][j]) then
+				x := Indeterminate(LeftActingDomain(A),c);
+				c := c + 1;
+				for p in Orbit( Symmetries(R),Basis(A){[i,j]},function( om, g )
+					return List(om,v->R!.act(v,g)); end ) do
+					tails := List(p,tail);
+					y := [Mult(A,LeftActingDomain(A),ft)(p[1]-tails[1],tails[2]),
+					 Mult(A,LeftActingDomain(A),ft)(p[2]-tails[2],tails[1]),
+					 Mult(A,LeftActingDomain(A),ft)(tails[1],tails[2])];
+					if ForAll(y,z->z<>fail) then
+						pos := List(p,LastNonzeroPos);
+						xg := (x - Sum(y))/(p[1][pos[1]]*p[2][pos[2]]);
+						pos := Sorted(pos);
+						ft[pos[2]][pos[1]] := xg;
+					fi;
+				od;
+			fi;
+		od;
+	od;
+	InfoPro("built indeterminate form",time); time := Runtime();
+
+	old := [];
+	for a in Axes(A) do
+		for eses in Combinations(Eigenspaces(a),2) do
+			for u in Basis(eses[1]) do
+				for v in Basis(eses[2]) do
+					Add(old,[u,v]);
+				od;
+			od;
+		od;
+	od;
+	while true do
+		c := Length(old);
+		new := [];
+		for uv in old do
+			r := AlgHelper@.relToFn(Mult(A,LeftActingDomain(A),ft)(uv[1],uv[2]));
+			if r = fail then Error("alg does not exist??");
+			elif r = false then Add(new,uv);
+			else ft := r(ft); fi;
+		od;
+		if Length(new) = c then break; fi;
+		old := new;
+	od;
+	InfoPro("solved form by perps",time);
+
+	SetFT(A,InField(ft));
+	end
 	);
 InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],
