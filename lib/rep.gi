@@ -178,9 +178,13 @@ InstallMethod( AxialRep,
 	[IsFusion,IsTrgp,IsAlg,IsDictionary,IsList],
 	function( Th, T, A, d, ss )
 	local map, R;
-	map := function(x)
-		if IsList(x) then return Mult(A)(map(x[1]),map(x[2]));
-		else return LookupDictionary(d,x); fi; end;
+	if IsTrivial(A) then
+		map := x -> Zero(A);
+	else
+		map := function(x)
+			if IsList(x) then return Mult(A)(map(x[1]),map(x[2]));
+			else return LookupDictionary(d,x); fi; end;
+	fi;
 	R := rec(
 		map := map,
 		act := function(om,g)
