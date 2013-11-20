@@ -70,9 +70,14 @@ InstallValue( AxialRepHelper@, rec(
 					RecursiveSorted(Recursive(y->LastNonzeroPos(R!.map(y)))(x)) );
 			else return Basis(Alg(R))[LastNonzeroPos(R!.map(x))]; fi;
 			end
+	, canonTest := function( ss, x )
+			local powers;
+			powers := List(Filtered([1..Order(x)-1],n->GcdInt(Order(x),n)=1),n->x^n);
+			return ForAny(ss,s->s in powers);
+			end
 	,	canonSetPos := function( ss, x )
 			local powers;
-			powers := List([1..Order(x)-1],n->x^n);
+			powers := List(Filtered([1..Order(x)-1],n->GcdInt(Order(x),n)=1),n->x^n);
 			return FirstPosition(ss,s->s in powers);
 			end
 	,	canonSet := function( ss, x )
@@ -123,7 +128,7 @@ InstallValue( AxialRepHelper@, rec(
 				od;
 
 				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonSet(Alphabet(R),s^c)));
-				pstnsR := FilteredPositions(bb,s->All(Recursive(x->x in al)(s)));
+				pstnsR := FilteredPositions(bb,s->All(Recursive(x->AxialRepHelper@.canonTest(al,x))(s)));
 				elmtsS := List(pstnsR,i->
 					S!.map(Recursive(x->First(Alphabet(S),a->a^c=x))(bb[i])) );
 				if ForAny(elmtsS,s->s=fail) then Error(); fi;
@@ -217,15 +222,34 @@ InstallMethod( AxialRep,
 		return AxialRep( Th, T, A, dict, ss );
 	end
 	);
-	InstallMethod( IsTrivial,
+InstallMethod( IsTrivial,
 	[IsAxialRep],
 	R -> IsTrivial(Alg(R))
 	);
+InstallMethod( ViewString,
+	[IsAxialRep],
+	A -> Concatenation(
+		"an axial rep of ",Description(Trgp(A)),
+		" on ", ViewString(Alg(A))
+		)
+	);
+InstallMethod( PrintString,
+	[IsAxialRep],
+	R -> Concatenation(
+		"AxialRep(\n",
+		"\t",PrintString(Fusion(R)),",\n",
+		"\t",PrintString(Trgp(R)),",\n",
+		"\t",PrintString(Alg(R)),",\n",
+		"\t",String(List(Alphabet(R),a->[a,R!.map(a)])),",\n",
+		"\t",PrintString(SpanningWords(R)),"\n",
+		")"
+	)
+);
 	InstallMethod( Symmetries,
 	[IsAxialRep],
 	R -> Trgp(R)
 	);
-	InstallMethod( Axis,
+InstallMethod( Axis,
 	[IsAlg and HasAxialRep,IsGeneralizedRowVector,IsFusion,IsMultiplicativeElementWithInverse],
 	function( A, v, th, g )
 	local a;
@@ -266,7 +290,8 @@ InstallMethod( Alphabet,
 	[IsAxialRep],
 	R -> AxialRepHelper@.closedAlphabet(Trgp(R),SpanningWords(R))
 	);
-	InstallMethod( InWords,
+
+InstallMethod( InWords,
 	[IsAxialRep],
 	function(R)
 		local f;
@@ -297,7 +322,7 @@ InstallMethod( Alphabet,
 			" ");
 		end
 	);
-	InstallMethod( FromWord,
+InstallMethod( FromWord,
 	[IsAxialRep],
 	function(R)
 		local f;
@@ -307,24 +332,25 @@ InstallMethod( Alphabet,
 		return f;
 		end
 	);
-InstallMethod( ViewString,
+InstallMethod( SpanningWords,
 	[IsAxialRep],
-	A -> Concatenation(
-		"an axial rep of ",Description(Trgp(A)),
-		" on ", ViewString(Alg(A))
-		)
-	);
-InstallMethod( PrintString,
-	[IsAxialRep],
-	R -> Concatenation(
-		"AxialRep(\n",
-		"\t",PrintString(Fusion(R)),",\n",
-		"\t",PrintString(Trgp(R)),",\n",
-		"\t",PrintString(Alg(R)),",\n",
-		"\t",String(List(Alphabet(R),a->[a,R!.map(a)])),",\n",
-		"\t",PrintString(SpanningWords(R)),"\n",
-		")"
-	)
+	function( R )
+  local words, mb, sw, w, v;
+	words := Union( List(Transpositions(Trgp(R)),t->t^Trgp(R)) );
+	mb := MutableBasis( LeftActingDomain(Alg(R)),[],Zero(Alg(R)) );
+	sw := [];
+	while NrBasisVectors(mb) < Dimension(Alg(R)) do
+		if IsEmpty(words)
+		then words := Union(Cartesian(sw,sw)); fi;
+		w := Remove(words[1]);
+		v := SiftedVector( mb, FromWord(R)(w) );
+		if not IsZero(v) then
+			CloseMutableBasis(mb,v);
+			Add(sw,w);
+		fi;
+	od;
+	return sw;
+	end
 );
 
 InstallMethod( Im, "image of an axial representation under gp hom",
@@ -466,7 +492,7 @@ InstallMethod( FindAxialRep,
 			else return step(IncreaseClosure(R)); fi;
 		end;
 		R := step(R);
-		WriteAxialRep(R:overwrite:=false);
+		WriteAxialRep(R);
 		Info(AxRepInfo,2,ElapseStr(time)," --- algebra found!");
 		return R;
 		end
@@ -568,7 +594,7 @@ InstallMethod( FindOtherSakumas,
 	end
 );
 
-InstallMethod( Explode,
+InstallMethod( Explosion,
 	[IsAxialRep],
 	function( R )
 	local a, II;
@@ -577,7 +603,7 @@ InstallMethod( Explode,
 		II := List(Check1Dimnlity(a),X->IdealClosure(R,X));
 		if not ForAll(II,IsTrivial)
 		then return Filtered(
-			Concatenation(List(II,i->Explode(Quotient(R,i)))),
+			Concatenation(List(II,i->Explosion(Quotient(R,i)))),
 			R -> not IsTrivial(R)); fi;
 	od;
 	ResetFilterObj(Trgp(R),HasShape);

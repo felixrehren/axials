@@ -45,7 +45,7 @@ DeclareOperation( "AxialSubrep", [IsAxialRep,IsGroup] );
 DeclareOperation( "FindAxialRep", [IsList] );
 DeclareOperation( "FindOtherSakumas", [IsAxialRep] );
 
-DeclareOperation( "Explode", [IsAxialRep] );
+DeclareAttribute( "Explosion", IsAxialRep );
 DeclareOperation( "RecogniseShape", [IsAxialRep] );
 
 DeclareOperation( "FixOfCentraliser", [IsAxialRep,IsAxis] );
