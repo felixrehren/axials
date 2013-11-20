@@ -15,21 +15,23 @@ InstallMethod( Shapes,
 	wip := [List(Pairs(T),p->Order(Product(p)))];
 	res := [];
 	PropCh := function( sh, i, cl )
-		local res, j, cc, c;
+		local wip, cc, j, c;
 		sh := ShallowCopy(sh);
 		sh[i] := cl;
-		res := [];
+		wip := [sh];
 		for j in Filtered(subs(i),j->IsInt(sh[j])) do
 			cc := Filtered(SubAlgebras(S,cl),a->a[1]=sh[j]);
 			if IsEmpty(cc) then return []; fi;
-			for c in cc do Append(res,PropCh( sh, j, c )); od; od;
+			for c in cc do
+				wip := Concatenation(List(wip,sh->PropCh( sh, j, c )));
+		od; od;
 		for j in Filtered(sups(i),j->IsInt(sh[j])) do
 			cc := Filtered(SupAlgebras(S,cl),a->a[1]=sh[j]);
 			if IsEmpty(cc) then return []; fi;
-			for c in cc do Append(res,PropCh( sh, j, c )); od; od;
-		if IsEmpty(res)
-		then return [sh];
-		else return res; fi;
+			for c in cc do
+				wip := Concatenation(List(wip,sh->PropCh( sh, j, c )));
+		od; od;
+		return wip;
 	end;
 	while not IsEmpty(wip) do
 		sh := Remove(wip);
@@ -44,7 +46,9 @@ InstallMethod( Shapes,
 		targets := [1..Length(Pairs(T))];
 		return PermListList( [1..Length(Pairs(T))],
 			List([1..Length(Pairs(T))], i ->
-			First(targets,function(t)
+			First(Filtered(targets,
+				t->Order(Product(Pairs(T)[t])) = Order(Product(Pairs(T)[i])) ),
+				function(t)
 				if RepresentativeAction( T,
 					OnSets(Pairs(T)[i],g),Pairs(T)[t],OnSets ) <> fail
 				then targets := Difference(targets,[t]); return true;
