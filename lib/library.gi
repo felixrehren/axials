@@ -67,7 +67,10 @@ InstallMethod( WriteAxialRep,
 	p := FirstPosition(rr,r->AreIsomorphicShapes(Trgp(r),Trgp(R)));
 	if p = fail then Add(rr,R);
 	else
-		if ValueOption("overwrite") = true then rr[p] := R;
+		if ValueOption("overwrite") = true
+		or ( Characteristic(Alg(R)) = 0 and Characteristic(Alg(rr[p])) > 0
+			and Dimension(Alg(R)) = Dimension(Alg(rr[p])) )
+		then rr[p] := R;
 		elif ValueOption("overwrite") = fail then
 			ans := UserChoice("such a rep already exists, overwrite? 1 = yes, 2 = no",
 				[1,2]);
