@@ -76,17 +76,17 @@ InstallValue( AxisHelper@,
 				else return es[i]; fi; end );
 			end
 	, eigspByMult := function( a )
-			local time, Uinf, Uint, sp;
+			local time, Uinf, adj, sp;
 			time := Runtime();
 			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(a),Vector(a),Alg(a));
-			Uint := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
-			sp := List(Eigenspaces(LeftActingDomain(Uinf),Uint),
+			adj := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(a))(Vector(a),b)));
+			sp := List(Eigenspaces(LeftActingDomain(Uinf),adj),
 				es -> Subspace(Closure(Alg(a)),
 					List(Basis(es),b->LinearCombination(Basis(Uinf),b))));
 			if HasFusion(a) then
 				sp := AxisHelper@.sortEigSps(
 					sp,
-					Eigenvalues(LeftActingDomain(Uinf),Uint),
+					Eigenvalues(LeftActingDomain(Uinf),adj),
 					Fields(Fusion(a))*One(LeftActingDomain(Alg(a)))
 				);
 			fi;
@@ -265,9 +265,72 @@ InstallMethod( Eigenspaces,
 	InstallMethod( Eigenspaces,
 	[IsAttrVector and HasAlg],
 	function(v)
+		local time, Uinf, adj, sp;
 		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
 		then return Eigenspaces(LeftActingDomain(Alg(v)),Ad(v));
-		else return AxisHelper@.eigspByMult(v); fi;
+		else
+			time := Runtime();
+			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(v),Vector(v),Alg(v));
+			adj := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(v))(Vector(v),b)));
+			sp := Eigenspaces(LeftActingDomain(Uinf),adj);
+			Error();
+			InfoPro("multspace",time);
+			return sp;
+		fi;
+	end
+	);
+InstallMethod( Eigenvalues,
+	[IsAttrVector and HasAlg],
+	function(v)
+		local time, Uinf, adj, vals;
+		if HasIsClosed(Alg(v)) and IsClosed(Alg(v))
+		then return Eigenvalues(LeftActingDomain(Alg(v)),Ad(v));
+		else 
+			time := Runtime();
+			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(v),Vector(v),Alg(v));
+			adj := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(v))(Vector(v),b)));
+			vals := Eigenvalues(LeftActingDomain(Uinf),adj);
+			InfoPro("multvalues",time);
+			return vals;
+		fi;
+	end
+);
+
+InstallMethod( ObservedFusion,
+	[IsAttrVector and HasAlg],
+	function(a)
+		local ev, pos, tbl;
+		ev := Eigenvalues(a);
+		if HasFusion(a) then
+			pos := List(ev,e->Position(Fields(Fusion(a)),e));
+			tbl := List([1..Length(ev)],i->List([1..Length(ev)],j->
+				Union(List(Basis(Eigenspaces(a)[pos[i]]),b->
+				Union(List(Basis(Eigenspaces(a)[pos[j]]),function(c)
+					local product, split;
+						product := Fuse(Fusion(a))(ev[i],ev[j]);
+						if IsEmpty(product) then return product; fi;
+						split := AxisHelper@.splitVector(a,Mult(Alg(a))(b,c),product);
+						return product{FilteredPositions(split,s->not IsZero(s))};
+					end
+			))))));
+		else
+			tbl := List([1..Length(ev)],i->List([1..Length(ev)],j->
+				Union(List(Basis(Eigenspaces(a)[i]),b->
+				Union(List(Basis(Eigenspaces(a)[j]),function(c)
+					local product, split;
+						product := Mult(Alg(a))(b,c);
+						if IsZero(product) then return []; fi;
+						split := AxisHelper@.splitVector(a,Mult(Alg(a))(b,c),ev);
+						return ev{FilteredPositions(split,s->not IsZero(s))};
+					end
+			))))));
+		fi;
+		return Fusion(
+			1/2*Form(Alg(a))(Vector(a),Vector(a)),
+			ev,
+			tbl,
+			"??"
+		);
 	end
 );
 
