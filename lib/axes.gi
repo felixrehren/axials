@@ -199,11 +199,24 @@ InstallValue( AxisHelper@,
 	)
 );
 
+InstallMethod( VectorInAlg,
+	[IsAlg,IsGeneralizedRowVector],
+	function( A, v )
+	local a;
+	a := rec( v := v );
+	ObjectifyWithAttributes(
+		a, TypeAttrVector@,
+		Alg, A
+	);
+	return a;
+	end
+	);
 InstallMethod( Axis,
 	[IsAlg,IsGeneralizedRowVector,IsFusion],
 	function( A, v, th )
 	local a;
 	a := rec( v := v );
+	if Mult(A)(v,v) <> v then return fail; fi;
 	ObjectifyWithAttributes(
 		a, TypeAttrVector@,
 		Alg, A,
@@ -299,7 +312,7 @@ InstallMethod( Eigenvalues,
 InstallMethod( ObservedFusion,
 	[IsAttrVector and HasAlg],
 	function(a)
-		local ev, pos, tbl;
+		local ev, pos, tbl, fus;
 		ev := Eigenvalues(a);
 		if HasFusion(a) then
 			pos := List(ev,e->Position(Fields(Fusion(a)),e));
@@ -325,12 +338,14 @@ InstallMethod( ObservedFusion,
 					end
 			))))));
 		fi;
-		return Fusion(
+		fus := Fusion(
 			1/2*Form(Alg(a))(Vector(a),Vector(a)),
 			ev,
 			tbl,
 			"??"
 		);
+		SetFusion(a,fus);
+		return fus;
 	end
 );
 

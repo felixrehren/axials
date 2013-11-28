@@ -26,6 +26,7 @@ DeclareAttribute( "ObservedFusion", IsAttrVector and HasAlg );
 DeclareAttribute( "Involution", IsAxis );
 DeclareAttribute( "Miyamoto", IsAxis );
 
+DeclareOperation( "VectorInAlg", [IsAlg,IsGeneralizedRowVector] );
 DeclareOperation( "Axis", [IsAlg,IsGeneralizedRowVector,IsFusion] );
 
 DeclareAttribute( "Relations", IsAxis );
