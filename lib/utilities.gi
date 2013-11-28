@@ -148,7 +148,8 @@
 		[IsList,IsFunction],
 		function( dom, f )
 		local d, x;
-		d := NewDictionary(false,true,dom);
+		if IsEmpty(dom) then d := NewDictionary(false,true,[]);
+		else d := NewDictionary(false,true,dom); fi; # unclear bug
 		for x in dom
 		do AddDictionary(d,x,f(x)); od;
 		return d;
@@ -193,6 +194,8 @@
 		function( S, T, Tbl )
 		return function(x,y)
 			local i, j, z;
+			if IsAttrVector(x) then x := Vector(x); fi;
+			if IsAttrVector(y) then y := Vector(y); fi;
 			z := ShallowCopy(Zero(T));
 			for i in [1..Dimension(S)] do
 				if not (IsZero(x[i]) or IsZero(y[i])) then
