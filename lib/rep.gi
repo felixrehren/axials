@@ -19,9 +19,10 @@ InstallValue( AxialRepHelper@, rec(
 			prespos := FilteredPositions(rr,r->r<>[]);
 
 			if ForAny(rr{prespos},IsTrivial) then
-				Info(AxRepInfo,"nonexistent subAlgebras\n",
-					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),Description),",\n"));
-				return fail; fi;
+				Info(AxRepInfo,3,"nonexistent subalgebras:\n",
+					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),ViewString),",\n"));
+				return rr{prespos};
+			fi;
 
 			if not IsEmpty(misspos) then
 				ans := UserChoice( Concatenation(
@@ -164,7 +165,9 @@ InstallValue( AxialRepHelper@, rec(
 			SetSymmetries(R,sym);
 
 			sr := AxialRepHelper@.getSubreps(T,sym,fus,LeftActingDomain(A));
-			if sr = fail then return fail; fi;
+			if sr = fail then return fail;
+			elif ForAny(sr,IsTrivial) then
+				return AxialRep( fus, T, Alg(LeftActingDomain(A)^0,[[]]), [], [] ); fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
 			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
 			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
@@ -462,7 +465,7 @@ InstallMethod( ChangeField, "for an axial rep and a (suitable) field",
 InstallMethod( FindAxialRep,
 	[HasShape,IsFusion,IsGroup,IsList],
 	function(S,fus,sym,axioms)
-		local time, R, step;
+		local time, R, b, ax, a;
 		time := Runtime();
 		if ValueOption("recompute") <> true then
 			R := GetAxialRep(fus,S);
@@ -475,23 +478,30 @@ InstallMethod( FindAxialRep,
 		fi;
 
 		if not IsPermGroup(S) then S := AsSmallPermTrgp(S); fi;
+		Info(AxRepInfo,2,"find algebra for ",Description(S)," with ",fus);
 		R := AxialRepHelper@.startAxialRep(S,fus,sym);
 		if R = fail then return fail; fi;
+		if not IsTrivial(R) then
 		R := IncreaseClosure(R);
-		step := function(R)
-			local ax, a;
+
+		while true do
 			if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
-				then return step(Quotient(R,IdealClosure(R,Relations(Alg(R))))); fi;
+			then R := Quotient(R,IdealClosure(R,Relations(Alg(R)))); fi;
+			b := false;
 			for ax in axioms do
 				for a in Axes(Alg(R)) do
 					ax(a);
 					if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
-					then return step(R); fi;
-			od; od;
-			if Alg(R) = Closure(Alg(R)) then return R;
-			else return step(IncreaseClosure(R)); fi;
-		end;
-		R := step(R);
+					then b := true; break; fi;
+				od;
+				if b then break; fi;
+			od;
+			if b then continue; fi;
+			if Alg(R) = Closure(Alg(R)) then break;
+			else R := IncreaseClosure(R); fi;
+		od;
+		fi;
+
 		WriteAxialRep(R);
 		Info(AxRepInfo,2,ElapseStr(time)," --- algebra found!");
 		return R;
