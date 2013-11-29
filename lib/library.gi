@@ -91,13 +91,31 @@ InstallMethod( DeleteAxialRep,
 		RR := GetAxialRep( fus, StructureDescription(S:short) );
 		p := FirstPosition(RR,R -> AreIsomorphicShapes(Trgp(R),S));
 		if p = fail then return false; fi;
-		return LibHelper@.writer(RR{FilteredNot([1..Length(RR)],q->q=p)});
+		if Length(RR) = 1
+		then PrintTo( LibHelper@.filename( fus, S ), "return [];" ); return true;
+		else return LibHelper@.writer(RR{FilteredNot([1..Length(RR)],q->q=p)}); fi;
 	end
 	);
 	InstallMethod( DeleteAxialRep,
 	[IsAxialRep],
 	function( R )
 	return DeleteAxialRep( Fusion( R ), Trgp( R ) );
+	end
+);
+
+InstallMethod( ImproveCharacteristic,
+	[IsFusion],
+	function( fus )
+		local gg, rr, field, g, r;
+		gg := GetAxialRep( fus );
+		for g in gg do
+			rr := GetAxialRep( fus, g );
+			Filtered( rr, r -> Characteristic(Alg(r)) > 0 );
+			for r in rr do
+				FindAxialRep( Trgp(r), fus : field := Rationals );
+			od;
+		od;
+	return true;
 	end
 );
 

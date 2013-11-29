@@ -12,3 +12,5 @@ DeclareOperation( "WriteAxialRep", [IsAxialRep] );
 
 DeclareOperation( "DeleteAxialRep", [IsAxialRep] );
 DeclareOperation( "DeleteAxialRep", [IsFusion,IsTrgp and HasShape] );
+
+DeclareOperation( "ImproveCharacteristic", [IsFusion] );
