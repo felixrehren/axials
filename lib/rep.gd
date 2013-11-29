@@ -15,6 +15,8 @@ DeclareGlobalVariable( "AxialRepHelper@" );
 
 DeclareOperation( "AxialRep", [IsFusion,IsTrgp,IsAlg,IsDictionary,IsList] );
 DeclareOperation( "AxialRep", [IsFusion,IsTrgp,IsAlg,IsList,IsList] );
+DeclareOperation( "TrivialAxialRep", [IsFusion,IsTrgp,IsField] );
+DeclareProperty ( "IsTrivial", IsAxialRep );
 DeclareAttribute( "Alg", IsAxialRep );
 DeclareAttribute( "Trgp", IsAxialRep );
 DeclareAttribute( "Fusion", IsAxialRep );
@@ -24,7 +26,6 @@ DeclareAttribute( "Symmetries", IsAxialRep );
 DeclareAttribute( "Miyamoto", IsAxialRep );
 DeclareAttribute( "MiyamotoHom", IsAxialRep );
 DeclareAttribute( "Orbiter", IsAxialRep );
-DeclareProperty ( "IsTrivial", IsAxialRep );
 
 DeclareAttribute( "Alphabet", IsAxialRep );
 DeclareAttribute( "InWords", IsAxialRep );

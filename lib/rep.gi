@@ -167,7 +167,7 @@ InstallValue( AxialRepHelper@, rec(
 			sr := AxialRepHelper@.getSubreps(T,sym,fus,LeftActingDomain(A));
 			if sr = fail then return fail;
 			elif ForAny(sr,IsTrivial) then
-				return AxialRep( fus, T, Alg(LeftActingDomain(A)^0,[[]]), [], [] ); fi;
+				return TrivialAxialRep( fus, T, LeftActingDomain(A) ); fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
 			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
 			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
@@ -229,6 +229,12 @@ InstallMethod( IsTrivial,
 	[IsAxialRep],
 	R -> IsTrivial(Alg(R))
 	);
+	InstallMethod( TrivialAxialRep,
+	[IsFusion,IsTrgp,IsField],
+	function( fus, t, f )
+		return AxialRep( fus, t, Alg( f^0, [[]] ), [], [] );
+	end
+);
 InstallMethod( ViewString,
 	[IsAxialRep],
 	A -> Concatenation(
@@ -426,8 +432,12 @@ InstallMethod( Quotient,
 	local Q, l, li, mt, i, I, j, A;
 	if IsTrivial(X) then return R; fi;
 	Q := NaturalHomomorphismBySubspace( Closure(Alg(R)), X );
-	if ForAny(Axes(Alg(R)),a->Vector(a) in Kernel(Q))
-	then return AxialRep(Fusion(R),Trgp(R),Alg(LeftActingDomain(Alg(R))^0,[[]]),CreateDictionary([],IdFunc),[]); fi;
+	if ForAny(Axes(Alg(R)),a->Vector(a) in Kernel(Q)) then
+		Info(AxRepInfo,3,
+			JoinStringsWithSeparator(List(Filtered(Axes(Alg(R)),a->Vector(a) in Kernel(Q)),ViewString),", "),
+			" killed ---> alg killed");
+		return TrivialAxialRep( Fusion(R), Trgp(R), LeftActingDomain(Alg(R)) );
+	fi;
 	l := AlgHelper@.quoBasisPos(Q);
 	li := Intersection([1..Dimension(Alg(R))],l);
 	mt := List([1..Length(li)],i->[]);
@@ -478,8 +488,8 @@ InstallMethod( FindAxialRep,
 		fi;
 
 		if not IsPermGroup(S) then S := AsSmallPermTrgp(S); fi;
-		Info(AxRepInfo,2,"find algebra for ",Description(S)," with ",fus);
 		R := AxialRepHelper@.startAxialRep(S,fus,sym);
+		Info(AxRepInfo,2,"find algebra for ",Description(S)," with ",fus);
 		if R = fail then return fail; fi;
 		if not IsTrivial(R) then
 		R := IncreaseClosure(R);
@@ -487,6 +497,7 @@ InstallMethod( FindAxialRep,
 		while true do
 			if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
 			then R := Quotient(R,IdealClosure(R,Relations(Alg(R)))); fi;
+			if IsTrivial(R) then break; fi;
 			b := false;
 			for ax in axioms do
 				for a in Axes(Alg(R)) do
