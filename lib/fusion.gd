@@ -26,23 +26,5 @@ DeclareAttribute("VirasoroP",IsRationalVirasoroFusion);
 DeclareAttribute("VirasoroQ",IsRationalVirasoroFusion);
 DeclareProperty("IsUnitaryFusion",IsFusion);
 
-### maybe move this in with shapes
-FamilySakuma@ := NewFamily("SakumaFamily");
-DeclareCategory("IsSakuma",IsObject);
-DeclareRepresentation("IsSakumaStdRep",
-	IsComponentObjectRep and IsAttributeStoringRep,[]);
-TypeSakuma@ := NewType(FamilySakuma@,IsSakuma and IsSakumaStdRep);
-
-DeclareOperation("Sakuma",[IsList,IsMatrix]);
-DeclareOperation("GetAlgebra",[IsSakuma,IsPosInt,IsString]);
-DeclareOperation("GetAlgebras",[IsSakuma,IsPosInt]);
-DeclareOperation("SubAlgebras",[IsSakuma,IsList]);
-DeclareOperation("SupAlgebras",[IsSakuma,IsList]);
-DeclareAttribute("Orders",IsSakuma);
-DeclareOperation("Classes",[IsSakuma]);
-
-DeclareGlobalVariable("MajoranaSakuma");
 DeclareGlobalVariable("MajoranaFusion");
-DeclareOperation( "MajoranaShapes", [IsGroup] );
-
-DeclareOperation("ObservedSakuma",[IsFusion]);
+DeclareGlobalVariable("FischerFusion");

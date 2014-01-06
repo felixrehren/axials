@@ -3,6 +3,143 @@
 #  shapes implementation
 #
 
+InstallMethod( Sakuma,
+	[IsList,IsMatrix],
+	function( algs, incidence )
+	return Objectify(
+		TypeSakuma@,
+		rec(
+			orders := List(algs,a->a[1]),
+			letters := List(algs,a->a[2]),
+			incidence := incidence,
+			find := function(n,X)
+				return First([1..Length(algs)],
+					i->algs[i][1]=n and algs[i][2]=X);
+				end
+		)
+	);
+	end
+	);
+	InstallMethod( ViewString,
+	[IsSakuma],
+	function(S)
+	return Concatenation("a specification of ",String(Length(S!.orders)),
+	" Sakuma (2-generated) algebras (or something)");
+	end
+	);
+	InstallMethod( PrintString,
+	[IsSakuma],
+	S -> Concatenation("Sakuma(\n",
+		PrintString( Classes(Sakuma) ),",\n",
+		PrintString( S!.incidence ),
+		"\n)"
+	)
+	);
+InstallMethod( GetAlgebra,
+	[IsSakuma,IsPosInt,IsString],
+	function(Sak,n,X)
+	local i;
+	i := Sak!.find(n,X);
+	return [Sak!.orders[i],Sak!.letters[i]];
+	end
+	);
+InstallMethod( GetAlgebras,
+	[IsSakuma,IsPosInt],
+	function(Sak,n)
+	return List(FilteredPositions(Sak!.orders,o->o=n),
+		i -> [n,Sak!.letters[i]]);
+	end
+	);
+InstallMethod( SubAlgebras,
+	[IsSakuma,IsList],
+	function(Sak,nX)
+	return List(Filtered([1..Length(Sak!.orders)],
+		i -> not IsZero(Sak!.incidence[i][Sak!.find(nX[1],nX[2])]) ),
+		i->[Sak!.orders[i],Sak!.letters[i]]);
+	end
+	);
+InstallMethod( SupAlgebras,
+	[IsSakuma,IsList],
+	function(Sak,nX)
+	return List(Filtered([1..Length(Sak!.orders)],
+		i -> not IsZero(Sak!.incidence[Sak!.find(nX[1],nX[2])][i]) ),
+		i->[Sak!.orders[i],Sak!.letters[i]]);
+	end
+	);
+InstallMethod( Orders,
+	[IsSakuma],
+	Sak -> Set(Sak!.orders)
+	);
+	InstallMethod( Classes,
+	[IsSakuma],
+	Sak -> List([1..Length(Sak!.orders)],i->[Sak!.orders[i],Sak!.letters[i]])
+);
+
+InstallValue( MajoranaSakuma,
+	Sakuma(
+	[ [2,"A"],
+		[2,"B"],
+		[3,"A"],
+		[3,"C"],
+		[4,"A"],
+		[4,"B"],
+		[5,"A"],
+		[6,"A"] ],
+	[ [1,0,0,0,0,1,0,1],
+		[0,1,0,0,1,0,0,0],
+		[0,0,1,0,0,0,0,1],
+		[0,0,0,1,0,0,0,0],
+		[0,0,0,0,1,0,0,0],
+		[0,0,0,0,0,1,0,0],
+		[0,0,0,0,0,0,1,0],
+		[0,0,0,0,0,0,0,1] ] )
+	);
+InstallValue( FischerSakuma,
+	Sakuma(
+	[ [2,"B"],
+		[3,"C"] ],
+	[ [1,0],
+		[0,1] ] )
+	);
+InstallMethod( MajoranaShapes,
+	[IsGroup],
+	G -> Shapes(G,MajoranaSakuma)
+	);
+	InstallMethod( MajoranaShapes,
+	[IsTrgp],
+	G -> Shapes(G,MajoranaSakuma)
+);
+
+InstallMethod( ObservedSakuma,
+	[IsFusion],
+	function( fus )
+	local SS, shapes, cl, mat;
+	SS := Concatenation(List(
+		Filtered(GetAxialRep(fus),
+			str -> str = "2^2"
+					or str = "S3"
+			or str[1] = 'D' and ForAll(str{[2..Length(str)]},IsDigitChar)
+		),
+		str -> List(GetAxialRep(fus,str),Trgp)
+	) );
+	shapes := List(SS,Shape);
+	cl := Set(Concatenation(shapes));
+	mat := List([1..Length(cl)],i -> List([1..Length(cl)],function(j)
+		if ForAny(SS,function(S) local pi,pj;
+			pi := FilteredPositions(Shape(S),s->s=cl[i]);
+			if IsEmpty(pi) then return false; fi;
+			pj := FilteredPositions(Shape(S),s->s=cl[j]);
+			if IsEmpty(pj) then return false; fi;
+			return ForAny(pi,p->ForAny(pj,q->q>p and IsOne(IncidencePairs(S)[p][q])));
+			end
+		) then return 1;
+		else return 0; fi;
+		end
+	));
+	return Sakuma( cl,mat );
+	end
+);
+
 InstallMethod( Shapes,
 	[IsTrgp,IsSakuma],
 	function(T,S)
@@ -55,16 +192,17 @@ InstallMethod( Shapes,
 				else return false; fi;
 				end )) );
 		end;
+	res := List( OrbitsDomain(
+		Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),permOnPairs)),
+		res,
+		Permuted ), Representative );
 	return List(
-		OrbitsDomain(
-			Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),permOnPairs)),
-			res,
-			Permuted ),
+		res,
 		function(sh)
 		local S;
 		S := TrgpNC(T,Transpositions(T));
 		SetPairs(S,Pairs(T));
-		SetShape(S,Representative(sh));
+		SetShape(S,sh);
 		return S; end
 	);
 	end
@@ -83,7 +221,7 @@ InstallMethod( ShapeStr,
 	[IsList],
 	S -> Concatenation("(",JoinStringsWithSeparator(
 		List(S,sh->Concatenation(String(sh[1]),sh[2])),
-		", "),")")
+		","),")")
 	);
 	InstallMethod( ShapeStrMlts,
 	[HasShape],
