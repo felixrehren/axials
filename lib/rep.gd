@@ -49,4 +49,6 @@ DeclareOperation( "FindOtherSakumas", [IsAxialRep] );
 DeclareAttribute( "Explosion", IsAxialRep );
 DeclareOperation( "RecogniseShape", [IsAxialRep] );
 
+DeclareOperation( "CosetAxis", [IsAxialRep,IsGroup] );
+DeclareOperation( "CosetAxis", [IsAxialRep,IsGroup,IsGroup] );
 DeclareOperation( "FixOfCentraliser", [IsAxialRep,IsAxis] );

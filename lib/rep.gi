@@ -19,8 +19,11 @@ InstallValue( AxialRepHelper@, rec(
 			prespos := FilteredPositions(rr,r->r<>[]);
 
 			if ForAny(rr{prespos},IsTrivial) then
-				Info(AxRepInfo,3,"nonexistent subalgebras:\n",
-					JoinStringsWithSeparator(List(Filtered(rr{prespos},IsTrivial),ViewString),",\n"));
+				Info(AxRepInfo,3,"the following subshapes do not admit algebras:\n",
+					JoinStringsWithSeparator(
+						List(Filtered(rr{prespos},IsTrivial),r->Description(Shape(r))),
+					",\n")
+				);
 				return rr{prespos};
 			fi;
 
@@ -238,7 +241,7 @@ InstallMethod( IsTrivial,
 InstallMethod( ViewString,
 	[IsAxialRep],
 	A -> Concatenation(
-		"an axial rep of ",Description(Trgp(A)),
+		"axial rep ",Description(Trgp(A)),
 		" on ", ViewString(Alg(A))
 		)
 	);
@@ -488,8 +491,8 @@ InstallMethod( FindAxialRep,
 		fi;
 
 		if not IsPermGroup(S) then S := AsSmallPermTrgp(S); fi;
+		Info(AxRepInfo,2,"find algebra for ",Description(S)," with ",ViewString(fus));
 		R := AxialRepHelper@.startAxialRep(S,fus,sym);
-		Info(AxRepInfo,2,"find algebra for ",Description(S)," with ",fus);
 		if R = fail then return fail; fi;
 		if not IsTrivial(R) then
 		R := IncreaseClosure(R);
@@ -620,7 +623,7 @@ InstallMethod( Explosion,
 	function( R )
 	local a, II;
 	if IsTrivial(R) then return [R]; fi;
-	for a in Axes(R) do
+	for a in Axes(Alg(R)) do
 		II := List(Check1Dimnlity(a),X->IdealClosure(R,X));
 		if not ForAll(II,IsTrivial)
 		then return Filtered(
@@ -678,3 +681,31 @@ InstallMethod( RecogniseShape,
 	end
 );
 
+InstallMethod( CosetAxis,
+	[IsAxialRep,IsGroup],
+	function( R, H )
+	local D, A, B, e;
+	if Subtrgp(Trgp(R),H) = fail then return fail; fi;
+	D := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),H);
+	A := Alg(R);
+	B := CloseUnderMult(Subspace(A,List(D,FromWord(R))),A);
+	e := VectorInAlg(A,Identity(A) - Identity(A,B));
+	ObservedFusion(e);
+	return e;
+	end
+	);
+	InstallMethod( CosetAxis,
+	[IsAxialRep,IsGroup,IsGroup],
+	function( R, H, K )
+	local D, E, A, B, C, e;
+	if Subtrgp(Trgp(R),H) = fail or Subtrgp(Trgp(R),K) = fail or not IsSubgroup(H,K) then return fail; fi;
+	D := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),H);
+	E := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),K);
+	A := Alg(R);
+	B := CloseUnderMult(Subspace(A,List(D,FromWord(R))),A);
+	C := CloseUnderMult(Subspace(A,List(E,FromWord(R))),A);
+	e := VectorInAlg(A,Identity(A,B) - Identity(A,C));
+	ObservedFusion(e);
+	return e;
+	end
+);
