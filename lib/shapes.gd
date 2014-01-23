@@ -29,10 +29,11 @@ DeclareOperation("TranspositionGroup",[IsGroup,IsCollection,IsList]);
 DeclareOperation("TrgpNC",[IsGroup,IsCollection,IsList]);
 
 DeclareOperation("Shapes",[IsGroup,IsSakuma]);
-DeclareOperation( "MajoranaShapes", [IsGroup] );
+DeclareOperation("MajoranaShapes", [IsGroup]);
 DeclareOperation("ShapeStr",[IsList]);
 DeclareOperation("ShapeStr",[HasShape]);
 DeclareOperation("ShapeStrMlts",[HasShape]);
+DeclareOperation("ShapeGraph",[HasShape]);
 
 DeclareOperation("IsIsomOfShapes",[HasShape,HasShape,IsMapping]);
 DeclareOperation("IsIsomOfShapes",[IsMapping]);

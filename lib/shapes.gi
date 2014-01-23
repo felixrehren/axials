@@ -178,24 +178,26 @@ InstallMethod( Shapes,
 			else Add(res,sh2); fi;
 		od;
 	od;
-	permOnPairs := function(g)
-		local targets;
-		targets := [1..Length(Pairs(T))];
-		return PermListList( [1..Length(Pairs(T))],
-			List([1..Length(Pairs(T))], i ->
-			First(Filtered(targets,
-				t->Order(Product(Pairs(T)[t])) = Order(Product(Pairs(T)[i])) ),
-				function(t)
-				if RepresentativeAction( T,
-					OnSets(Pairs(T)[i],g),Pairs(T)[t],OnSets ) <> fail
-				then targets := Difference(targets,[t]); return true;
-				else return false; fi;
-				end )) );
-		end;
-	res := List( OrbitsDomain(
-		Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),permOnPairs)),
-		res,
-		Permuted ), Representative );
+	if Size(res) <> 1 and Size(Set(List(res,Set))) <> Size(res) then 
+		permOnPairs := function(g)
+			local targets;
+			targets := [1..Length(Pairs(T))];
+			return PermListList( [1..Length(Pairs(T))],
+				List([1..Length(Pairs(T))], i ->
+				First(Filtered(targets,
+					t->Order(Product(Pairs(T)[t])) = Order(Product(Pairs(T)[i])) ),
+					function(t)
+					if RepresentativeAction( T,
+						OnSets(Pairs(T)[i],g),Pairs(T)[t],OnSets ) <> fail
+					then targets := Difference(targets,[t]); return true;
+					else return false; fi;
+					end )) );
+			end;
+		res := List( OrbitsDomain(
+			Group(List(GeneratorsOfGroup(AutomorphismGroup(T)),permOnPairs)),
+			res,
+			Permuted ), Representative );
+	fi;
 	return List(
 		res,
 		function(sh)
@@ -232,9 +234,14 @@ InstallMethod( ShapeStr,
 		else return Concatenation("^",String(i)); fi; end;
 	return Concatenation("(",
 		JoinStringsWithSeparator(List(Set(Shape(S)),s->
-			Concatenation(Concatenation(List(s,String)),mlt(Count(Shape(S),t->t=s)))),", " ),")");
+			Concatenation(Concatenation(List(s,String)),mlt(Count(Shape(S),t->t=s)))),"," ),")");
 	end
-);
+	);
+	InstallMethod( ShapeGraph,
+	[HasShape],
+	S -> IncidenceGraph(IncidencePairs(S),
+		List(Shape(S),s->Concatenation(List(s,String))))
+	);
 InstallMethod( Description, "for a trgp with shape",
 	[IsTrgp and HasShape],
 	function( S )
