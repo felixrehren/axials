@@ -204,6 +204,36 @@
 				fi;
 				for j in [1..i-1] do
 					if (not IsZero(x[i]) and not IsZero(y[j]))
+					then
+						if not IsBound(Tbl[i][j]) then return fail; # necessary?
+						else z := z + x[i]*y[j]*Tbl[i][j]; fi;
+					fi;
+					if (not IsZero(x[j]) and not IsZero(y[i])) 
+					then
+						if not IsBound(Tbl[j][i]) then return fail; # necessary?
+						else z := z + x[j]*y[i]*Tbl[j][i]; fi;
+					fi;
+				od;
+			od;
+			return z;
+			end;
+		end
+		);
+	InstallMethod( MultComm,
+		[IsVectorSpace,IsVectorSpace,IsList],
+		function( S, T, Tbl )
+		return function(x,y)
+			local i, j, z;
+			if IsAttrVector(x) then x := Vector(x); fi;
+			if IsAttrVector(y) then y := Vector(y); fi;
+			z := ShallowCopy(Zero(T));
+			for i in [1..Dimension(S)] do
+				if not (IsZero(x[i]) or IsZero(y[i])) then
+					if not IsBound(Tbl[i][i]) then return fail; # necessary?
+					else z := z + x[i]*y[i]*Tbl[i][i]; fi;
+				fi;
+				for j in [1..i-1] do
+					if (not IsZero(x[i]) and not IsZero(y[j]))
 					or (not IsZero(x[j]) and not IsZero(y[i])) 
 					then
 						if not IsBound(Tbl[i][j]) then return fail; # necessary?

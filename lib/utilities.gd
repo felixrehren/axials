@@ -39,6 +39,7 @@
 
 # this one is tough to name
 	DeclareOperation( "Mult", [IsVectorSpace,IsVectorSpace,IsList] );
+	DeclareOperation( "MultComm", [IsVectorSpace,IsVectorSpace,IsList] );
 	DeclareOperation( "MultNaive", [IsList,IsList,IsList] );
 	DeclareGlobalFunction( "InField" );
 

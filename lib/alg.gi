@@ -4,6 +4,8 @@
 #
 
 InstallValue( AlgHelper@, rec(
+		trivialAlg := function( field )
+			return Alg( field^0, [[]] ); end
 	,	incBasis := function( A, n )
 			local z, mt, i, j;
 			z := [1..Dimension(A)+n]*Zero(LeftActingDomain(A));
@@ -118,8 +120,15 @@ InstallMethod( Alg,
 	InstallMethod( Alg,
 	[IsVectorSpace,IsVectorSpace,IsList],
 	function( V, W, mt )
+	return Alg( V, W, mt, 1 );
+	end
+	);
+	InstallMethod( Alg,
+	[IsVectorSpace,IsVectorSpace,IsList,IsInt],
+	function( V, W, mt, com )
 	SetMT(V,mt);
 	SetClosure(V,W);
+	SetIsCommutative(V,com = 1);
 	if Dimension(V) = Dimension(W) then SetIsClosed(V,true); fi;
 	return V;
 	end
@@ -161,6 +170,10 @@ InstallMethod( Alg,
 	InstallMethod( IsClosed,
 	[IsAlg],
 	A -> Dimension(A) = Dimension(Closure(A)) 
+	);
+	InstallMethod( Mult,
+	[IsAlg and IsCommutative],
+	A -> MultComm( A, Closure(A), A!.MT )
 	);
 	InstallMethod( Mult,
 	[IsAlg],
@@ -238,7 +251,7 @@ InstallMethod( ImageUnderMult,
 	InstallMethod( ImageUnderMult,
 	[IsVector,IsVectorSpace,IsAlg],
 	function( v, U, A )
-	if not v in A then return TrivialSubspace(A);
+	if not v in A then return fail;
 	else return
 		VectorSpace(LeftActingDomain(A),List(Basis(Intersection(A,U)),u->Mult(A)(v,u)));
 	fi;
@@ -301,15 +314,17 @@ InstallMethod( CloseUnder,
 InstallMethod( DerivedSubalg,
 	[IsAlg,IsVectorSpace],
 	function( A, V )
-	return DerivedSubalg(A,Basis(CloseUnderMult(V,V)));
+	return DerivedSubalg(A,Basis(CloseUnderMult(V,A)));
 	end
 	);
-InstallMethod( DerivedSubalg,
+	InstallMethod( DerivedSubalg,
 	[IsAlg,IsBasis],
 	function( A, B )
+	local T; # use left inverse of B
+	T := TransposedMat(B);
 	return Alg( LeftActingDomain(A)^Length(B),
 		List([1..Length(B)],i ->
-		List([1..i],j -> Mult(A)(B[i],B[j])*AsList(B)^-1 ))
+		List([1..i],j -> Mult(A)(B[i],B[j])*( T*(B*T)^-1 ) ))
 	);
 	end
 	);
@@ -345,12 +360,13 @@ InstallMethod( SpanOfWords,
 InstallMethod( IncreaseClosure,
 	[IsAlg],
 	function( A )
-	local mt, n, i, j, z;
+	local mt, n, i, j, bound, z, C, B;
 	if not HasClosure(A) then SetClosure(A,LeftActingDomain(A)^Dimension(A)); fi;
 	n := Dimension(Closure(A));
 	mt := List([1..Dimension(Closure(A))],i->[]);
 	for i in [1..Dimension(Closure(A))] do
-		for j in [1..i] do # lower-triangular
+		if IsCommutative(A) then bound := i; else bound := Dimension(Closure(A)); fi;
+		for j in [1..bound] do
 			if IsBound(A!.MT[i]) and IsBound(A!.MT[i][j])
 			then mt[i][j] := A!.MT[i][j];
 			else
@@ -362,7 +378,13 @@ InstallMethod( IncreaseClosure,
 	z := [1..n]*Zero(LeftActingDomain(A));
 	for i in [1..Dimension(Closure(A))] do for j in [1..i]
 	do mt[i][j] := mt[i][j] + z; od; od;
-	return Alg( Dimension(Closure(A)),n,mt );
+	C := LeftActingDomain(A)^n;
+	B := Subspace(C,Basis(C){[1..Dimension(Closure(A))]});
+	if IsCommutative(A)
+	then B := Alg( B,C,mt,1 );
+	else B := Alg( B,C,mt,0 ); fi;
+	if HasAxes(A) then SetAxes(B,List(Axes(A),function(a) a!.Alg := B; a!.v := a!.v+z; return a; end)); fi;
+	return B;
 	end
 	);
 InstallMethod( AddRelations,
@@ -375,36 +397,27 @@ InstallMethod( AddRelations,
 InstallMethod( Quotient,
 	[IsAlg,IsVectorSpace],
 	function( A, X )
-	local Q, mt, f;
+	local Q, mt, f, Bcl, B;
 	if Dimension(X) = Dimension(Closure(A))
-	then return AlgHelper@.trivialAlg; fi;
+	then return AlgHelper@.trivialAlg(LeftActingDomain(A)); fi;
 	Q := NaturalHomomorphismBySubspace( Closure(A), X );		
 	f := Intersection(AlgHelper@.quoBasisPos(Q),[1..Dimension(A)]);
-	mt := List(f,i->List(Intersection([1..i],f),j->Image(Q,A!.MT[i][j])));
-	return Alg( Dimension(A) - Dimension(Intersection(A,X)),
-							Dimension(Closure(A)) - Dimension(X), mt );
-	end
-);
-
-InstallMethod( Identity,
-	[IsAlg and IsClosed],
-	function( A )
-	local x, rr, i;
-	x := List( [1..Dimension(A)], i -> Indeterminate( LeftActingDomain(A), i ) );
-	rr := Concatenation(List( Basis(A), b -> Mult(A)(b,x) - b ));
-	for i in [1..Length(rr)] do
-		x := List(x,AlgHelper@.relToFn(rr[i]));
-		rr := List(rr,AlgHelper@.relToFn(rr[i]));
-	od;
-	return InField(x);
+	Bcl := LeftActingDomain(A)^(Dimension(Closure(A)) - Dimension(X));
+	B := Subspace(Bcl,Basis(Bcl){[1..Dimension(A) - Dimension(Intersection(A,X))]});
+	if IsCommutative(A)
+	then B := Alg( B, Bcl, List(f,i->List(Intersection([1..i],f),j->Image(Q,A!.MT[i][j]))), 1 );
+	else B := Alg( B, Bcl, List(f,i->List(f,j->Image(Q,A!.MT[i][j]))), 0 ); fi;
+	if HasAxes(A) then SetAxes(B,List(Axes(A),a->Axis(B,Vector(a)^Q,Fusion(a)))); fi;
+	if HasPlusses(A) then SetPlusses(B,Plusses(A){AlgHelper@.quoBasisPos(Q)}); fi;
+	return B;
 	end
 );
 
 InstallMethod( Form,
 	[IsAlg and HasFT],
-	A -> Mult( A, LeftActingDomain(A), A!.FT )
+	A -> MultComm( A, LeftActingDomain(A), A!.FT )
 	);
-InstallMethod( Form,
+	InstallMethod( Form,
 	[IsAlg and HasAxialRep],
 	function( A )
 	local tail, time, R, ft, aa, pp, i, j, x, c, p, tails, y, pos, xg, a, eses, u, v, uv, old, new, r;
@@ -455,26 +468,46 @@ InstallMethod( Form,
 		od;
 	od;
 	while true do
-		c := Length(old);
 		new := [];
 		for uv in old do
-			r := AlgHelper@.relToFn(Mult(A,LeftActingDomain(A),ft)(uv[1],uv[2]));
+			r := AlgHelper@.relToFn(MultComm(A,LeftActingDomain(A),ft)(uv[1],uv[2]));
 			if r = fail then Error("alg does not exist??");
 			elif r = false then Add(new,uv);
 			else ft := r(ft); fi;
 		od;
-		if Length(new) = c then break; fi;
+		if Length(new) = Length(old) then break; fi;
 		old := new;
 	od;
 	InfoPro("solved form by perps",time);
 
 	SetFT(A,InField(ft));
+	return Form(A);
 	end
 	);
-InstallMethod( CentralCharge,
+	InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],
-	A -> 1/2*Form(A)(Identity(A),Identity(A))
+	A ->
+	1/2*Form(A)(Identity(A),Identity(A))
+);
+
+InstallMethod( Identity,
+	[IsAlg and IsClosed],
+	A -> Identity(A,A)
 	);
+	InstallMethod( Identity,
+	[IsAlg and IsClosed,IsVectorSpace],
+	function( A, B )
+	local x, rr, i;
+	if IsTrivial(B) then return Zero(A); fi;
+	x := Sum( [1..Dimension(B)], i -> Indeterminate( LeftActingDomain(A), i )*Basis(B)[i] );
+	rr := Concatenation(List( Basis(B), b -> Mult(A)(b,x) - b ));
+	for i in [1..Length(rr)] do
+		x := List(x,AlgHelper@.relToFn(rr[i]));
+		rr := List(rr,AlgHelper@.relToFn(rr[i]));
+	od;
+	return InField(x);
+	end
+);
 
 InstallMethod( Idempotents, "in subspace of an axial alg",
 	[IsAlg and IsClosed,IsVectorSpace],
@@ -482,6 +515,7 @@ InstallMethod( Idempotents, "in subspace of an axial alg",
 		local B, i;
 		B := Basis(V);
 		i := Sum([1..Dimension(V)], i -> Indeterminate(LeftActingDomain(A),i)*B[i]);
+		# mistake here?? try finding idempotents in tau-fixed subalg of (3A) if (3A)-idempots are not known
 		return InField(Set(AlgHelper@.idempotentSolns(A,i)));
 	end
 	);
@@ -536,5 +570,85 @@ InstallMethod( UnitaryRationalVirasoroAxes,
 		j := First( RootsOfPolynomial( x^2 + x - 6/(1-ccs[i]) ), IsPosInt );
 		return Axis( A, is[i], VirasoroFusion(j,j+1) ); end
 	);
+	end
+);
+
+InstallMethod( EnforceAxioms,
+	[IsAxialAlg,IsList],
+	function( A, axioms )
+  local b, ax, a;
+	while true do
+		if HasRelations(A) and not IsTrivial(Relations(A))
+			then A := Quotient(A,Relations(A)); fi;
+		if IsTrivial(A) then break; fi;
+		b := false;
+		for ax in axioms do
+			for a in Axes(A) do
+				ax(a);
+				if HasRelations(A) and not IsTrivial(Relations(A))
+				then b := true; break; fi;
+			od;
+			if b then break; fi;
+		od;
+		if b then continue;
+		else break; fi;
+	od;
+	return A;
+	end
+);
+
+InstallMethod( DoubleFischer,
+	[IsTrgp,IsRat,IsRat],
+	function( T, alpha, cc )
+	local D, l, V, B, mt, ft, i, j, A;
+	if TranspositionDegree(T) > 3 then return fail; fi;
+	D := Union( List(Transpositions(T),t->Set(t^T)) );
+	l := Size(D);
+	V := Rationals^(2*l);
+	B := Basis(V);
+	mt := List([1..2*l],i->[]);
+	ft := List([1..2*l],i->[]);
+	for i in [1..l] do
+		mt[i][i] := Basis(V)[i];
+		mt[i+l][i+l] := Basis(V)[i+l];
+		ft[i][i] := 2*cc;
+		ft[i+l][i+l] := 2*cc;
+		for j in [1..i-1] do
+			if D[i]*D[j] = D[j]*D[i] then
+				mt[i][j] := Zero(V);
+				mt[i+l][j+l] := Zero(V);
+				ft[i][j] := 0;
+				ft[i+l][j+l] := 0;
+			else
+				mt[i][j] := alpha/2*(Basis(V)[i] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])]);
+				mt[i+l][j+l] := alpha/2*(Basis(V)[i+l] + Basis(V)[j+l] - Basis(V)[Position(D,D[i]^D[j])]);
+				ft[i][j] := alpha/2;
+				ft[i+l][j+l] := alpha/2;
+			fi;
+		od;
+		for j in [1..l] do
+			if D[i]*D[j] = D[j]*D[i] then
+				mt[i+l][j] := Zero(V);
+				ft[i+l][j] := 0;
+			else
+				mt[i+l][j] := alpha/2*(Basis(V)[i+l] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])+l]);
+				ft[i+l][j] := alpha/2; ### does this term need adjusting?
+			fi;												## as a function of the central charge
+		od;
+	od;
+	A := Alg(V,mt);
+	SetFT(A,ft);
+	Form(A);
+	SetAxes(A,List(
+		Basis(A){[1..l]},
+		x -> Axis(A,x,MajoranaFusion))
+	);
+	return A;
+	end
+	);
+InstallMethod( DLMN,
+	[IsString,IsPosInt],
+	function( X, n )
+	return DoubleFischer( WeylGroup( X, n ), 1/4, 1/4 );
 	end
 );
