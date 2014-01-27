@@ -74,6 +74,7 @@ InstallValue( AxisHelper@,
 				i := Position(ev,f);
 				if i = fail then return TrivialSubspace(es[1]);
 				else return es[i]; fi; end );
+				## eigenspaces with false eigenvalues are relations???
 			end
 	, eigspByMult := function( a )
 			local time, Uinf, adj, sp;
@@ -133,7 +134,7 @@ InstallValue( AxisHelper@,
 	, linEigSp := function( v )
 			local time, B, vv, ff, eigspBySplit, eigspByMult;
 			time := Runtime();
-			if not IsEmpty(Miyamoto(Fusion(v))) then
+			if not IsEmpty(Miyamoto(Fusion(v))) and Miyamoto(v) <> fail then
 				B := Basis(Closure(Alg(v)));
 				vv := [
 					Subspace(Closure(Alg(v)),List([1..Length(B)],i->B[i]+Miyamoto(v)[i])),
@@ -286,10 +287,16 @@ InstallMethod( Eigenspaces,
 			Uinf := AxisHelper@.maxmlMultStabSubsp(Alg(v),Vector(v),Alg(v));
 			adj := List(Basis(Uinf),b->Coefficients(Basis(Uinf),Mult(Alg(v))(Vector(v),b)));
 			sp := Eigenspaces(LeftActingDomain(Uinf),adj);
-			Error();
 			InfoPro("multspace",time);
 			return sp;
 		fi;
+	end
+	);
+	InstallMethod( Eigenspaces,
+	[IsAttrVector and HasAlg and HasFusion, IsList],
+	function( v, eigvals )
+	if IsEmpty(eigvals) then return TrivialSubspace(Alg(v)); fi;
+	return Sum(Eigenspaces(v){List(eigvals,f->Position(Fields(Fusion(v)),f))});
 	end
 	);
 InstallMethod( Eigenvalues,
@@ -430,6 +437,22 @@ InstallMethod( Check1Dimnlity,
 		#do what? ??
 	fi;
 	InfoPro("1dimnlity",time);
+	return rr;
+	end
+	);
+InstallMethod( CheckFusion,
+	[IsAxis],
+	function( a )
+  local time, rr, i, j;
+	time := Runtime();
+	rr := TrivialSubspace(Alg(a));
+	for i in [1..Length(Fields(Fusion(a)))] do
+		for j in [1..i] do
+			rr := rr + (Eigenspaces(a,Fuse(Fusion(a))(Fields(Fusion(a))[i],Fields(Fusion(a))[j])) - ImageUnderMult(Eigenspaces(a)[i],Eigenspaces(a)[j],Alg(a)));
+		od;
+	od;
+	if not IsTrivial(rr) then AddRelations(Alg(a),rr); fi;
+	InfoPro("fusionality",time);
 	return rr;
 	end
 );

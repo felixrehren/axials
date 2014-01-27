@@ -17,6 +17,7 @@ DeclareOperation( "Vector", [IsAttrVector] );
 
 DeclareAttribute( "Alg", IsAttrVector );
 DeclareAttribute( "Ad", IsAttrVector and HasAlg );
+DeclareOperation( "Eigenspaces", [IsAttrVector and HasAlg,IsList] );
 DeclareAttribute( "Eigenspaces", IsAttrVector and HasAlg );
 #DeclareOperation( "Eigenvalues", [IsAttrVector and HasAlg] );
 DeclareProperty( "IsIdempotent", IsAttrVector and HasAlg );
@@ -33,9 +34,9 @@ DeclareAttribute( "Relations", IsAxis );
 DeclareOperation( "CheckLinearity", [IsAxis] );
 DeclareOperation( "CheckSemisimplicity", [IsAxis] );
 DeclareOperation( "Check1Dimnlity", [IsAxis] );
+DeclareOperation( "CheckFusion", [IsAxis] );
 
 DeclareAttribute( "CentralCharge", IsAttrVector and HasAlg );
 DeclareAttribute( "Explosion", IsIdempotent );
-
 
 DeclareGlobalVariable( "AxisHelper@" );

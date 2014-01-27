@@ -106,16 +106,21 @@ InstallMethod( DeleteAxialRep,
 InstallMethod( ImproveCharacteristic,
 	[IsFusion],
 	function( fus )
-		local gg, rr, field, g, r;
-		gg := GetAxialRep( fus );
-		for g in gg do
-			rr := GetAxialRep( fus, g );
-			Filtered( rr, r -> Characteristic(Alg(r)) > 0 );
-			for r in rr do
-				FindAxialRep( Trgp(r), fus : field := Rationals );
+		local g, r, ans;
+		for g in GetAxialRep( fus ) do
+			for r in Filtered( GetAxialRep( fus, g ), r -> Characteristic(Alg(r)) > 0 ) do
+				ans := UserChoice(Concatenation(
+					ViewString(r),"\n",
+					"1 = try to find the algebra over Q, ",
+					" 2 = forget it and move on, 3 = quit."),
+					[0..3]);
+				if ans = 0 then Error();
+				elif ans = 1 then
+					FindAxialRep( Trgp(r), fus : field := Rationals );
+				elif ans = 2 then continue;
+				elif ans = 3 then return; fi;
 			od;
 		od;
-	return true;
 	end
 );
 

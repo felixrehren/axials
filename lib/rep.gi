@@ -21,7 +21,7 @@ InstallValue( AxialRepHelper@, rec(
 			if ForAny(rr{prespos},IsTrivial) then
 				Info(AxRepInfo,3,"the following subshapes do not admit algebras:\n",
 					JoinStringsWithSeparator(
-						List(Filtered(rr{prespos},IsTrivial),r->Description(Shape(r))),
+						List(Filtered(rr{prespos},IsTrivial),r->Description(Trgp(r))),
 					",\n")
 				);
 				return rr{prespos};
@@ -128,7 +128,8 @@ InstallValue( AxialRepHelper@, rec(
 				for s in Alphabet(S) do
 					if LookupDictionary(dict,s^c) = fail
 					then AddDictionary(dict,s^c,S!.map(s)*emb);
-					else Add(rr,LookupDictionary(dict,s^c)-S!.map(s)*emb); fi;
+					else Add(rr,LookupDictionary(dict,s^c)-S!.map(s)*emb);
+fi;
 				od;
 
 				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonSet(Alphabet(R),s^c)));
@@ -171,7 +172,9 @@ InstallValue( AxialRepHelper@, rec(
 			if sr = fail then return fail;
 			elif ForAny(sr,IsTrivial) then
 				return TrivialAxialRep( fus, T, LeftActingDomain(A) ); fi;
-			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym ); od;
+			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym );
+				Info(mai,3,"inserted ",Description(Trgp(s)));
+		od;
 			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
 			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
 
@@ -438,7 +441,7 @@ InstallMethod( Quotient,
 	if ForAny(Axes(Alg(R)),a->Vector(a) in Kernel(Q)) then
 		Info(AxRepInfo,3,
 			JoinStringsWithSeparator(List(Filtered(Axes(Alg(R)),a->Vector(a) in Kernel(Q)),ViewString),", "),
-			" killed ---> alg killed");
+			" killed ---> rep killed");
 		return TrivialAxialRep( Fusion(R), Trgp(R), LeftActingDomain(Alg(R)) );
 	fi;
 	l := AlgHelper@.quoBasisPos(Q);

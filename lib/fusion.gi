@@ -28,8 +28,9 @@ InstallMethod( Fusion,
 		[IsFusion,IsFusion],
 		function( f,g )
 		return CentralCharge(f) = CentralCharge(g)
-			and Fields(f) = Fields(g)
-			and f!.tbl = g!.tbl;
+			and Set(Fields(f)) = Set(Fields(g))
+			and ForAll([1..Length(Fields(f))],i->ForAll([1..i],j->
+				Fuse(f)(Fields(f)[i],Fields(f)[j])=Fuse(g)(Fields(f)[i],Fields(f)[j])));
 		end
 		);
 	InstallMethod( ViewString,
