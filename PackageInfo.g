@@ -6,11 +6,11 @@ SetPackageInfo( rec(
 			SixFile	:= "doc/manual.six",
 			Autoload := true ),
 	PackageWWWHome :=
-		Concatenation( "http://www.internet.com/",~.PackageName,"/" ),
+		Concatenation( "https://github.com/felixrehren/",~.PackageName ),
 	Persons := [
 		rec( 
-			LastName      := "Rehren",
 			FirstNames    := "Felix",
+			LastName      := "Rehren",
 			IsAuthor      := true,
 			IsMaintainer  := true,
 			Email         := "rehrenf@maths.bham.ac.uk",
