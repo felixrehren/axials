@@ -202,11 +202,14 @@ InstallMethod( Alg,
 InstallMethod( ChangeField,
 	[IsAlg,IsField],
 	function( A, F )
+	local B;
 	if Characteristic(A) = Characteristic(F)
 	then return A;
 	elif not Characteristic(A) = 0
 	then return fail; fi;
-	return Alg( F^Dimension(A), F^Dimension(Closure(A)), A!.MT*One(F) );
+	B := Alg( Dimension(A), Dimension(Closure(A)), A!.MT*One(F) );
+	if HasAxes(A) then SetAxes(B,List(Axes(A),a->Axis(B,Vector(a)*One(F),Fusion(a)))); fi;
+	return B;
 	end
 );
 
@@ -484,10 +487,28 @@ InstallMethod( Form,
 	return Form(A);
 	end
 	);
-	InstallMethod( CentralCharge,
+InstallMethod( CentralCharge,
 	[IsAlg and IsClosed],
 	A ->
 	1/2*Form(A)(Identity(A),Identity(A))
+	);
+InstallMethod( OrthogonalComplement,
+	[IsAlg and HasFT,IsVectorSpace],
+	function( A, B )
+  local ii, x, rr, i;
+	ii := List( [1..Dimension(A)], i -> Indeterminate( LeftActingDomain(A), i ) );
+	x := Sum( [1..Dimension(A)], i -> ii[i]*Basis(A)[i] );
+	rr := List( Basis(B), b -> Form(A)(b,x) );
+	for i in [1..Length(rr)] do
+		x := List(x,AlgHelper@.relToFn(rr[i]));
+		rr := List(rr,AlgHelper@.relToFn(rr[i]));
+	od;
+	return Subspace( A, List( [1..Dimension(A)], i -> List(x,function(y) if IsRationalFunction(y) then return Value( y, ii, Basis(A)[i] ); else return y; fi; end) ) );
+	end
+	);
+	InstallMethod( OrthogonalComplement,
+	[IsAlg and HasFT],
+	A -> OrthogonalComplement( A, A )
 );
 
 InstallMethod( Identity,
@@ -597,6 +618,40 @@ InstallMethod( EnforceAxioms,
 	end
 );
 
+InstallMethod( SingleFischer,
+	[IsTrgp,IsRat,IsRat],
+	function( T, alpha, cc )
+	local D, l, V, B, mt, ft, i, j, A;
+	if TranspositionDegree(T) > 3 then return fail; fi;
+	D := Union( List(Transpositions(T),t->Set(t^T)) );
+	l := Size(D);
+	V := Rationals^(l);
+	B := Basis(V);
+	mt := List([1..l],i->[]);
+	ft := List([1..l],i->[]);
+	for i in [1..l] do
+		mt[i][i] := Basis(V)[i];
+		ft[i][i] := 2*cc;
+		for j in [1..i-1] do
+			if D[i]*D[j] = D[j]*D[i] then
+				mt[i][j] := Zero(V);
+				ft[i][j] := 0;
+			else
+				mt[i][j] := alpha/2*(Basis(V)[i] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])]);
+				ft[i][j] := alpha/2;
+			fi;
+		od;
+	od;
+	A := Alg(V,mt);
+	SetFT(A,ft);
+	Form(A);
+	SetAxes(A,List(
+		Basis(A){[1..l]},
+		x -> Axis(A,x,MajoranaFusion))
+	);
+	return A;
+	end
+	);
 InstallMethod( DoubleFischer,
 	[IsTrgp,IsRat,IsRat],
 	function( T, alpha, cc )
@@ -649,6 +704,6 @@ InstallMethod( DoubleFischer,
 InstallMethod( DLMN,
 	[IsString,IsPosInt],
 	function( X, n )
-	return DoubleFischer( WeylGroup( X, n ), 1/4, 1/4 );
+	return DoubleFischer( WeylGroup( X, n ), 1/4, 1/2 );
 	end
 );

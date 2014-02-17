@@ -45,6 +45,8 @@ DeclareOperation( "Quotient", [IsAlg,IsVectorSpace] );
 DeclareAttribute( "FT", IsAlg and IsClosed );
 DeclareAttribute( "Form", IsAlg );
 DeclareAttribute( "CentralCharge", IsAlg and IsClosed );
+DeclareAttribute( "OrthogonalComplement", IsAlg and HasFT );
+DeclareOperation( "OrthogonalComplement", [IsAlg and HasFT,IsVectorSpace] );
 
 DeclareAttribute( "Identity", IsAlg and IsClosed );
 DeclareOperation( "Identity", [IsAlg and IsClosed,IsVectorSpace] );
@@ -61,6 +63,7 @@ DeclareSynonym( "IsAxialAlg", IsAlg and HasAxes );
 DeclareOperation( "EnforceAxioms", [IsAxialAlg,IsList] );
 DeclareAttribute( "AxialRep", IsAlg );
 
+DeclareOperation( "SingleFischer", [IsTrgp,IsRat,IsRat] );
 DeclareOperation( "DoubleFischer", [IsTrgp,IsRat,IsRat] );
 DeclareOperation( "DLMN", [IsString,IsPosInt] );
 
