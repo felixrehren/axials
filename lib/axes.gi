@@ -260,7 +260,7 @@ InstallMethod( Axis,
 
 InstallMethod( IsIdempotent,
 	[IsAttrVector and HasAlg],
-	v -> Mult(Alg(v))(v,v) = v
+	v -> Mult(Alg(v))(v,v) = Vector(v)
 	);
 InstallMethod( Eigenspaces,
 	[IsAttrVector and HasAlg and HasFusion],
@@ -479,8 +479,8 @@ InstallMethod( Explosion,
 			 AlgHelper@.annihSubsets(Idempotents(Alg(v),B),Mult(Alg(v))),
 				S -> Sum(S) = Vector(v)
 			);
-			if not Length(ff) = 1 then Error("wat"); fi;
-			return ff[1];
+			if IsEmpty(ff) then return fail;
+			else return ff[1]; fi;
 		fi;
 	end
 	);

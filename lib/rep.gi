@@ -5,7 +5,7 @@
 
 InstallValue( AxialRepHelper@, rec(
 	getSubreps := function( T,G,th,field )
-			local sr, ss, rr, misspos, prespos, ans, m, s, ff;
+			local sr, ss, rr, misspos, prespos, spawn, rpawn, ans, m, s, ff;
 
 			sr := [];
 			ss := MaximalSubshapes(T);
@@ -26,6 +26,15 @@ InstallValue( AxialRepHelper@, rec(
 				);
 				return rr{prespos};
 			fi;
+
+			for s in Reversed(FilteredPositions(misspos,s->IsElementaryAbelian(ss[s]))) do
+				spawn := List(Pairs(ss[misspos[s]]),p->Subshape(ss[misspos[s]],Group(p)));
+				rpawn := List(spawn,s->GetAxialRep(th,s));
+				if ForAny(rpawn,r->r=fail) then Error(); fi;
+				Append(ss,spawn);
+				Append(rr,rpawn);
+				Remove(misspos,s);
+			od;
 
 			if not IsEmpty(misspos) then
 				ans := UserChoice( Concatenation(
@@ -53,8 +62,6 @@ InstallValue( AxialRepHelper@, rec(
 			fi;
 			
 			ff := List([1..Length(rr)],i->AllShapeIsomClasses(Trgp(rr[i]),ss[i]));
-			Assert(1,ForAll(ff,f->ForAll(f,g->g^G =f[1]^G)),
-				"we only want one homomorphism up to G, otherwise need extra methods to deal with this"); # e.g. L3(3)?
 			ff := List(ff,Representative);
 			Append(sr,List([1..Length(rr)],i->Im(ff[i],rr[i])));
 			return sr;
@@ -128,8 +135,7 @@ InstallValue( AxialRepHelper@, rec(
 				for s in Alphabet(S) do
 					if LookupDictionary(dict,s^c) = fail
 					then AddDictionary(dict,s^c,S!.map(s)*emb);
-					else Add(rr,LookupDictionary(dict,s^c)-S!.map(s)*emb);
-fi;
+					else Add(rr,LookupDictionary(dict,s^c)-S!.map(s)*emb); fi;
 				od;
 
 				al := Set(List(Alphabet(S),s->AxialRepHelper@.canonSet(Alphabet(R),s^c)));
@@ -173,8 +179,7 @@ fi;
 			elif ForAny(sr,IsTrivial) then
 				return TrivialAxialRep( fus, T, LeftActingDomain(A) ); fi;
 			for s in sr do R := AxialRepHelper@.inSubrep( R, s, sym );
-				Info(mai,3,"inserted ",Description(Trgp(s)));
-		od;
+				Info(mai,3,"inserted ",Description(Trgp(s))); od;
 			dict := CreateDictionary(Alphabet(R),a->R!.map(a)+Zero(Alg(R)));
 			R := AxialRep( fus, T, Alg(R), dict, SpanningWords(R) );
 
@@ -481,7 +486,7 @@ InstallMethod( ChangeField, "for an axial rep and a (suitable) field",
 InstallMethod( FindAxialRep,
 	[HasShape,IsFusion,IsGroup,IsList],
 	function(S,fus,sym,axioms)
-		local time, R, b, ax, a;
+		local time, R, b, A, ax, i, a;
 		time := Runtime();
 		if ValueOption("recompute") <> true then
 			R := GetAxialRep(fus,S);
@@ -498,25 +503,35 @@ InstallMethod( FindAxialRep,
 		R := AxialRepHelper@.startAxialRep(S,fus,sym);
 		if R = fail then return fail; fi;
 		if not IsTrivial(R) then
-		R := IncreaseClosure(R);
-
-		while true do
-			if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
-			then R := Quotient(R,IdealClosure(R,Relations(Alg(R)))); fi;
-			if IsTrivial(R) then break; fi;
-			b := false;
-			for ax in axioms do
-				for a in Axes(Alg(R)) do
-					ax(a);
-					if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
-					then b := true; break; fi;
+			R := IncreaseClosure(R);
+			while true do
+				if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
+				then R := Quotient(R,IdealClosure(R,Relations(Alg(R)))); fi;
+				if IsTrivial(R) then break; fi;
+				b := false;
+				if ValueOption("pilotfield") <> fail
+				then A := ChangeField(Alg(R),ValueOption("pilotfield")); fi;
+				for ax in axioms do
+					if ValueOption("pilotfield") <> fail then
+						for i in [1..Length(Axes(Alg(R)))] do
+							ax(Axes(A)[i]);
+							Info(AxRepInfo,2,"pilot check");
+							if HasRelations(A) and not IsTrivial(Relations(A))
+							then ax(Axes(Alg(R))[i]); b := true; break; fi;
+						od;
+					else
+						for a in Axes(Alg(R)) do
+							ax(a);
+							if HasRelations(Alg(R)) and not IsTrivial(Relations(Alg(R)))
+							then b := true; break; fi;
+						od;
+					fi;
+					if b then break; fi;
 				od;
-				if b then break; fi;
+				if b then continue; fi;
+				if Alg(R) = Closure(Alg(R)) then break;
+				else R := IncreaseClosure(R); fi;
 			od;
-			if b then continue; fi;
-			if Alg(R) = Closure(Alg(R)) then break;
-			else R := IncreaseClosure(R); fi;
-		od;
 		fi;
 
 		WriteAxialRep(R);
@@ -684,7 +699,7 @@ InstallMethod( RecogniseShape,
 	end
 );
 
-InstallMethod( CosetAxis,
+InstallMethod( Subidentity,
 	[IsAxialRep,IsGroup],
 	function( R, H )
 	local D, A, B, e;
@@ -692,8 +707,7 @@ InstallMethod( CosetAxis,
 	D := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),H);
 	A := Alg(R);
 	B := CloseUnderMult(Subspace(A,List(D,FromWord(R))),A);
-	e := VectorInAlg(A,Identity(A) - Identity(A,B));
-	ObservedFusion(e);
+	e := VectorInAlg(A,Identity(A,B));
 	return e;
 	end
 	);
@@ -701,14 +715,14 @@ InstallMethod( CosetAxis,
 	[IsAxialRep,IsGroup,IsGroup],
 	function( R, H, K )
 	local D, E, A, B, C, e;
-	if Subtrgp(Trgp(R),H) = fail or Subtrgp(Trgp(R),K) = fail or not IsSubgroup(H,K) then return fail; fi;
+	A := Alg(R);
+	if IsTrivial(H) then return VectorInAlg(A,Zero(A)); fi;
+	if Subtrgp(Trgp(R),H) = fail or (not IsTrivial(K) and (Subtrgp(Trgp(R),K) = fail or not IsSubgroup(H,K))) then return fail; fi;
 	D := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),H);
 	E := Intersection(Union(List(Transpositions(Trgp(R)),t->t^Trgp(R))),K);
-	A := Alg(R);
 	B := CloseUnderMult(Subspace(A,List(D,FromWord(R))),A);
 	C := CloseUnderMult(Subspace(A,List(E,FromWord(R))),A);
 	e := VectorInAlg(A,Identity(A,B) - Identity(A,C));
-	ObservedFusion(e);
 	return e;
 	end
 );

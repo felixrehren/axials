@@ -18,6 +18,10 @@
 		[IsList,IsFunction],
 		function( list, boolFn )
 		return First([1..Length(list)],i->boolFn(list[i])); end);
+	InstallMethod( NonzeroPos,
+		[IsList],
+		v -> FilteredPositions(v,x->not IsZero(x))
+		);
 	InstallMethod( LastNonzeroPos,
 		[IsList],
 		function( v )

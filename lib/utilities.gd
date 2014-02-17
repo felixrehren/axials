@@ -6,6 +6,7 @@
 # lists: positions
 	DeclareOperation( "FilteredPositions", [IsList,IsFunction] );
 	DeclareOperation( "FirstPosition", [IsList,IsFunction] );
+	DeclareOperation( "NonzeroPos", [IsList] );
 	DeclareOperation( "LastNonzeroPos", [IsList] );
 	DeclareOperation( "KroneckerVector", [IsPosInt,IsPosInt] );
 	DeclareOperation( "Independify", [IsList,IsList] );
