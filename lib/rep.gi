@@ -33,6 +33,8 @@ InstallValue( AxialRepHelper@, rec(
 				if ForAny(rpawn,r->r=fail) then Error(); fi;
 				Append(ss,spawn);
 				Append(rr,rpawn);
+				Remove(ss,misspos[s]);
+				Remove(rr,misspos[s]);
 				Remove(misspos,s);
 			od;
 
@@ -105,6 +107,7 @@ InstallValue( AxialRepHelper@, rec(
 			end
 	, inSubrep := function( R, S, sym )
 			local bb, alph, dict, s, A, mt, i, rr, c, pos, emb, al, pstnsR, elmtsS, j, v, NewRep;
+			if IsTrivial(Alg(R)) then return R; fi;
 			bb := ShallowCopy(SpanningWords(R));
 			for s in SpanningWords(S) do
 				s := AxialRepHelper@.canonSet(bb,s);
