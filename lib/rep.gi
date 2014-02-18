@@ -27,16 +27,17 @@ InstallValue( AxialRepHelper@, rec(
 				return rr{prespos};
 			fi;
 
-			for s in Reversed(FilteredPositions(misspos,s->IsElementaryAbelian(ss[s]))) do
-				spawn := List(Pairs(ss[misspos[s]]),p->Subshape(ss[misspos[s]],Group(p)));
+			for s in Reversed(Filtered(misspos,s->IsElementaryAbelian(ss[s]))) do
+				spawn := List(Pairs(ss[s]),p->Subshape(ss[s],Group(p)));
 				rpawn := List(spawn,s->GetAxialRep(th,s));
 				if ForAny(rpawn,r->r=fail) then Error(); fi;
 				Append(ss,spawn);
 				Append(rr,rpawn);
-				Remove(ss,misspos[s]);
-				Remove(rr,misspos[s]);
-				Remove(misspos,s);
+				Remove(ss,s);
+				Remove(rr,s);
 			od;
+			misspos := FilteredPositions(rr,r->r=[]);
+			prespos := FilteredPositions(rr,r->r<>[]);
 
 			if not IsEmpty(misspos) then
 				ans := UserChoice( Concatenation(
