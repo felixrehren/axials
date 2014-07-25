@@ -241,11 +241,12 @@ InstallMethod( CloseUnderAct,
 InstallMethod( ImageUnderMult,
 	[IsVectorSpace,IsVectorSpace,IsAlg],
 	function( V, U, A )
-		local time, mb, v, u, S;
+		local time, mb, v, u, uv, S;
 		time := Runtime();
 		mb := MutableBasis( LeftActingDomain(A), [], Zero(V) );
 		for v in Basis(Intersection(A,V)) do for u in Basis(Intersection(A,U))
-		do CloseMutableBasis( mb, Mult(A)(v,u) ); od; od;
+		do uv := Mult(A)(v,u); if uv <> fail then CloseMutableBasis( mb, uv );
+		fi; od; od;
 		S := VectorSpace( LeftActingDomain(A), BasisVectors(mb), Zero(V) );
 		InfoPro("multiplying",time);
 		return S;
@@ -518,13 +519,15 @@ InstallMethod( Identity,
 	InstallMethod( Identity,
 	[IsAlg and IsClosed,IsVectorSpace],
 	function( A, B )
-	local x, rr, i;
+	local x, rr, i, f;
 	if IsTrivial(B) then return Zero(A); fi;
 	x := Sum( [1..Dimension(B)], i -> Indeterminate( LeftActingDomain(A), i )*Basis(B)[i] );
-	rr := Concatenation(List( Basis(B), b -> Mult(A)(b,x) - b ));
+	rr := FilteredNot(Concatenation(List( Basis(B), b -> Mult(A)(b,x) - b )),IsZero);
 	for i in [1..Length(rr)] do
-		x := List(x,AlgHelper@.relToFn(rr[i]));
-		rr := List(rr,AlgHelper@.relToFn(rr[i]));
+		f := AlgHelper@.relToFn(rr[i]);
+		if f = fail then return fail; fi;
+		x := List(x,f);
+		rr := List(rr,f);
 	od;
 	return InField(x);
 	end
@@ -618,77 +621,74 @@ InstallMethod( EnforceAxioms,
 	end
 );
 
-InstallMethod( SingleFischer,
+InstallMethod( Matsuo,
 	[IsTrgp,IsRat,IsRat],
 	function( T, alpha, cc )
-	local D, l, V, B, mt, ft, i, j, A;
-	if TranspositionDegree(T) > 3 then return fail; fi;
-	D := Union( List(Transpositions(T),t->Set(t^T)) );
-	l := Size(D);
-	V := Rationals^(l);
+  local D, s, mat, V, B, mt, ft, A, fus, i, j, k, l;
+	D := Union( List(Transpositions(T),t->Set(Orbit(T,t))) );
+	s := Size(D);
+	mat := List([1..s],d->List([1..s],function(c)
+		if IsOne(Comm(D[c],D[d])) then return 0;
+		else return Position(D,D[c]^D[d]); fi; end));
+	V := Rationals^(s);
 	B := Basis(V);
-	mt := List([1..l],i->[]);
-	ft := List([1..l],i->[]);
-	for i in [1..l] do
-		mt[i][i] := Basis(V)[i];
-		ft[i][i] := 2*cc;
-		for j in [1..i-1] do
-			if D[i]*D[j] = D[j]*D[i] then
-				mt[i][j] := Zero(V);
-				ft[i][j] := 0;
+	mt := List([1..Dimension(V)],i->[]);
+	ft := List([1..Dimension(V)],i->[]);
+	for k in [1..s] do
+		for l in [1..s] do
+			if IsZero(mat[k][l]) then
+				mt[k][l] := Zero(V);
+				ft[k][l] := 0;
 			else
-				mt[i][j] := alpha/2*(Basis(V)[i] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])]);
-				ft[i][j] := alpha/2;
+				mt[k][l] := alpha/2*(Basis(V)[k]+Basis(V)[l]-Basis(V)[mat[k][l]]);
+				ft[k][l] := alpha*cc;
 			fi;
 		od;
+		mt[k][k] := Basis(V)[k];
+		ft[k][k] := 2*cc;
 	od;
 	A := Alg(V,mt);
 	SetFT(A,ft);
 	Form(A);
 	SetAxes(A,List(
 		Basis(A){[1..l]},
-		x -> Axis(A,x,MajoranaFusion))
+		x -> Axis(A,x,JordanFusion(alpha)))
 	);
 	return A;
 	end
 	);
-InstallMethod( DoubleFischer,
+InstallMethod( 2Matsuo,
 	[IsTrgp,IsRat,IsRat],
 	function( T, alpha, cc )
-	local D, l, V, B, mt, ft, i, j, A;
-	if TranspositionDegree(T) > 3 then return fail; fi;
-	D := Union( List(Transpositions(T),t->Set(t^T)) );
-	l := Size(D);
-	V := Rationals^(2*l);
+  local D, s, mat, V, B, mt, ft, A, fus, i, j, k, l;
+	D := Union( List(Transpositions(T),t->Set(Orbit(T,t))) );
+	s := Size(D);
+	mat := List([1..s],d->List([1..s],function(c)
+		if IsOne(Comm(D[c],D[d])) then return 0;
+		else return Position(D,D[c]^D[d]); fi; end));
+	V := Rationals^(2*s);
 	B := Basis(V);
-	mt := List([1..2*l],i->[]);
-	ft := List([1..2*l],i->[]);
-	for i in [1..l] do
-		mt[i][i] := Basis(V)[i];
-		mt[i+l][i+l] := Basis(V)[i+l];
-		ft[i][i] := 2*cc;
-		ft[i+l][i+l] := 2*cc;
-		for j in [1..i-1] do
-			if D[i]*D[j] = D[j]*D[i] then
-				mt[i][j] := Zero(V);
-				mt[i+l][j+l] := Zero(V);
-				ft[i][j] := 0;
-				ft[i+l][j+l] := 0;
-			else
-				mt[i][j] := alpha/2*(Basis(V)[i] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])]);
-				mt[i+l][j+l] := alpha/2*(Basis(V)[i+l] + Basis(V)[j+l] - Basis(V)[Position(D,D[i]^D[j])]);
-				ft[i][j] := alpha/2;
-				ft[i+l][j+l] := alpha/2;
-			fi;
+	mt := List([1..Dimension(V)],i->[]);
+	ft := List([1..Dimension(V)],i->[]);
+	for i in [0..1] do
+		for j in [0..i] do
+			for k in [1..s] do
+				mt[k+i*s][k+j*s] := Zero(V);
+				ft[k+i*s][k+j*s] := 0;
+				for l in [1..s] do
+					if IsZero(mat[k][l]) then
+						mt[k+i*s][l+j*s] := Zero(V);
+						ft[k+i*s][l+j*s] := 0;
+					else
+						mt[k+i*s][l+j*s] := alpha/2*(Basis(V)[k+i*s]+Basis(V)[l+j*s]-Basis(V)[mat[k][l]+((i+j) mod 2)*s]);
+						ft[k+i*s][l+j*s] := alpha*cc;
+					fi;
+				od;
+			od;
 		od;
-		for j in [1..l] do
-			if D[i]*D[j] = D[j]*D[i] then
-				mt[i+l][j] := Zero(V);
-				ft[i+l][j] := 0;
-			else
-				mt[i+l][j] := alpha/2*(Basis(V)[i+l] + Basis(V)[j] - Basis(V)[Position(D,D[i]^D[j])+l]);
-				ft[i+l][j] := alpha/2; ### does this term need adjusting?
-			fi;												## as a function of the central charge
+		for k in [1..s] do
+			mt[k+i*s][k+i*s] := Basis(V)[k+i*s];
+			ft[k+i*s][k+i*s] := 2*cc;
 		od;
 	od;
 	A := Alg(V,mt);
@@ -696,7 +696,7 @@ InstallMethod( DoubleFischer,
 	Form(A);
 	SetAxes(A,List(
 		Basis(A){[1..l]},
-		x -> Axis(A,x,MajoranaFusion))
+		x -> Axis(A,x,JordanFusion(alpha)))
 	);
 	return A;
 	end
@@ -704,6 +704,123 @@ InstallMethod( DoubleFischer,
 InstallMethod( DLMN,
 	[IsString,IsPosInt],
 	function( X, n )
-	return DoubleFischer( WeylGroup( X, n ), 1/4, 1/2 );
+	return 2Matsuo( WeylGroup( X, n ), 1/4, 1/2 );
+	end
+);
+
+InstallMethod( ParabolicChain,
+	[IsAlg],
+	A -> ParabolicChain(A,TrivialSubspace(A))
+	);
+InstallMethod( ParabolicChain,
+	[IsAlg,IsVectorSpace],
+	function( A,B0 )
+  local B, BB, b;
+	B := Basis(A);
+	BB := [B0];
+	while BB[Length(BB)] < A do
+		b := First(B,b->not b in BB[Length(BB)] and ForAny(Basis(BB[Length(BB)]),
+			c->not IsZero(Mult(A)(b,c))));
+		if b = fail then b := First(B,b->not b in BB[Length(BB)]); fi;
+		BB[Length(BB)+1] := CloseUnderMult(BB[Length(BB)]+Subspace(A,[b]),A);
+	od;
+	return BB;
+	end
+	);
+InstallMethod( ParabolicTorus,
+	[IsAlg],
+	function( A )
+  local ii;
+	ii := List(ParabolicChain(A),B->Identity(A,B));
+	return List([2..Length(ii)],i->ii[i]-ii[i-1]);
+	end
+	);
+InstallMethod( FlatTorus,
+	[IsAlg],
+	function( A )
+  local B, C, b;
+	B := Basis(A);
+	C := Subspace(A,B{[1]});
+	while C < A do
+		b := First(B,b->not b in C and ForAll(Basis(C),c->IsZero(Mult(A)(b,c))));
+		if b = fail then break; fi;
+		C := C+Subspace(A,[b]);
+	od;
+	return Basis(C);
+	end
+	);
+InstallMethod( ToralBasis,
+	[IsAlg,IsList],
+	function( A, T )
+  local ess, B, C, c, cc, es;
+	T := List(T,t->VectorInAlg(A,t));
+	ess := List(T,Eigenspaces);
+	B := [];
+	C := ShallowCopy(ess[1]);
+	while not IsEmpty(C) do
+		c := Remove(C,1);
+		if Dimension(c) = 1 then AddSet(B,Basis(c)[1]); continue; fi;
+		for es in ess{[2..Length(T)]} do
+			cc := List(es,s->Intersection(c,s));
+			if not c in cc then break; fi;
+			cc := [];
+		od;												# lots of superfluous intersections
+		if IsEmpty(cc) then UniteSet(B,Basis(c));
+		else Append(C,Filtered(cc,c->not IsTrivial(c))); fi;
+	od;
+	return B;
+	end
+	);
+InstallMethod( ToralDecomposition,
+	[IsAlg,IsList],
+	function( A, T )
+  local B, dteigval;
+	B := ToralBasis(A,T);
+	if B = fail then return fail; fi;
+	dteigval := function (t,v)
+		local p;
+		p := FirstPosition(v,x->not IsZero(x));
+		return Mult(A)(t,v)[p]/v[p]; end;
+	return List(B,b->List(T,t->dteigval(t,b)));
+	end
+	);
+InstallMethod( ToralReconstruct,
+	[IsList,IsField],
+	function( td, field )
+	local V, l, toralpos, mt, v, i, j;
+	V := field^Length(td);
+	l := Length(td[1]);
+	toralpos := List([1..l],i->Position(td,KroneckerVector(i,l)));
+	if ForAny(toralpos,x->x=fail) then return fail; fi;
+	mt := List([1..Dimension(V)],i->[]);
+	for i in [1..Dimension(V)] do
+		for j in [1..l] do
+			v := td[i][j]*Basis(V)[i];
+			if toralpos[j] > i
+			then mt[toralpos[j]][i] := v;
+			else mt[i][toralpos[j]] := v; fi;
+		od;
+	od;
+	return Alg(V,mt);
+	end
+);
+
+InstallMethod( IsJordan,
+	[IsAlg],
+	A -> IsJordan(A,A)
+	);
+	InstallMethod( IsJordan,
+	[IsAlg,IsVectorSpace],
+	function( A, B )
+	local M;
+	M := Mult(A);
+#	return ForAll(UnorderedTuples(Basis(B),3),xyz -> IsZero( 
+#		M(M(M(xyz[1],xyz[1]),xyz[2]),xyz[3]) - M(M(xyz[1],xyz[1]),M(xyz[2],xyz[3]))
+#		 + 2*M(M(M(xyz[1],xyz[3]),xyz[2]),xyz[1]) - 2*M(M(xyz[1],xyz[3]),M(xyz[2],xyz[1]))
+	return ForAll(UnorderedTuples(Basis(B),4),wxyz -> IsZero( 
+		M(M(M(wxyz[2],wxyz[4]),wxyz[3]),wxyz[1]) - M(M(wxyz[2],wxyz[4]),M(wxyz[3],wxyz[1]))
+	 +M(M(M(wxyz[4],wxyz[1]),wxyz[3]),wxyz[2]) - M(M(wxyz[4],wxyz[1]),M(wxyz[3],wxyz[2]))
+	 +M(M(M(wxyz[1],wxyz[2]),wxyz[3]),wxyz[4]) - M(M(wxyz[1],wxyz[2]),M(wxyz[3],wxyz[4]))
+	));
 	end
 );

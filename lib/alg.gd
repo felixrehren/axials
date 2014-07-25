@@ -63,8 +63,19 @@ DeclareSynonym( "IsAxialAlg", IsAlg and HasAxes );
 DeclareOperation( "EnforceAxioms", [IsAxialAlg,IsList] );
 DeclareAttribute( "AxialRep", IsAlg );
 
-DeclareOperation( "SingleFischer", [IsTrgp,IsRat,IsRat] );
-DeclareOperation( "DoubleFischer", [IsTrgp,IsRat,IsRat] );
+DeclareOperation( "Matsuo", [IsTrgp,IsRat,IsRat] );
+DeclareOperation( "2Matsuo", [IsTrgp,IsRat,IsRat] );
 DeclareOperation( "DLMN", [IsString,IsPosInt] );
 
-DeclareAttribute("Plusses",IsAlg);
+DeclareAttribute( "Plusses", IsAlg );
+
+DeclareOperation( "ParabolicChain", [IsAlg] );
+DeclareOperation( "ParabolicChain", [IsAlg,IsVectorSpace] );
+DeclareOperation( "ParabolicTorus", [IsAlg] );
+DeclareOperation( "FlatTorus", [IsAlg] );
+DeclareOperation( "ToralBasis", [IsAlg,IsList] );
+DeclareOperation( "ToralDecomposition", [IsAlg,IsList] );
+DeclareOperation( "ToralReconstruct", [IsList,IsField] );
+
+DeclareAttribute( "IsJordan", IsAlg );
+DeclareOperation( "IsJordan", [IsAlg,IsVectorSpace] );
