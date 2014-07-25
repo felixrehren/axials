@@ -18,13 +18,19 @@ DeclareOperation("Subfusion",[IsFusion,IsList,IsString]);
 DeclareAttribute("Miyamoto",IsFusion);
 DeclareOperation("MiyamotoFixedFusion",[IsFusion]);
 DeclareOperation("ChangeFields",[IsFusion,IsList,IsString]);
+DeclareProperty("IsUnitaryFusion",IsFusion);
 
 DeclareOperation("VirasoroFusion",[IsPosInt,IsPosInt]);
 DeclareProperty("IsVirasoroFusion",IsFusion);
 DeclareProperty("IsRationalVirasoroFusion",IsVirasoroFusion);
 DeclareAttribute("VirasoroP",IsRationalVirasoroFusion);
 DeclareAttribute("VirasoroQ",IsRationalVirasoroFusion);
-DeclareProperty("IsUnitaryFusion",IsFusion);
+DeclareOperation("KacEntry",[IsRationalVirasoroFusion,IsPosInt,IsPosInt]);
+DeclareOperation("KacPosition",[IsRationalVirasoroFusion,IsRat]);
+
+DeclareOperation("VirasoroRamond",[IsPosInt]);
+DeclareOperation("VirasoroNeveuSchwarz",[IsPosInt]);
 
 DeclareGlobalVariable("MajoranaFusion");
+DeclareOperation("JordanFusion",[IsRat]);
 DeclareGlobalVariable("FischerFusion");

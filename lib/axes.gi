@@ -127,7 +127,10 @@ InstallValue( AxisHelper@,
 				r := AxisHelper@.splitVector( a,v,eigv );
 				if r <> fail then Add(rr,r); fi;
 			od;
-			es := List( [1..Length(eigv)], i -> Subspace(V,List(rr,r->r[i])) );
+		#	es := List( [1..Length(eigv)], i -> Subspace(V,List(rr,r->r[i])) );
+			es := List( [1..Length(eigv)], i -> Subspace(Closure(Alg(a)),List(rr,r->r[i])) );
+		# if V does not decompose into eigenspaces,
+		# we will still return a result! containing V
 			InfoPro("split space",time);
 			return es;
 			end
@@ -317,33 +320,28 @@ InstallMethod( Eigenvalues,
 );
 
 InstallMethod( ObservedFusion,
-	[IsAttrVector and HasAlg],
-	function(a)
-		local ev, pos, tbl, fus;
-		ev := Eigenvalues(a);
+	[IsAttrVector and HasAlg,IsVectorSpace],
+	function(a,B)
+		local ad, ev, es, tbl, fus;
+		ad := Ad(Alg(a),B)(a);
+		if ForAny(ad,x->x = fail) then return fail; fi;
+		es := Eigenspaces(LeftActingDomain(Alg(a)),ad);
 		if HasFusion(a) then
-			pos := List(ev,e->Position(Fields(Fusion(a)),e));
+			fus := Fusion(a);
+			ev := Fields(fus);
 			tbl := List([1..Length(ev)],i->List([1..Length(ev)],j->
-				Union(List(Basis(Eigenspaces(a)[pos[i]]),b->
-				Union(List(Basis(Eigenspaces(a)[pos[j]]),function(c)
-					local product, split;
-						product := Fuse(Fusion(a))(ev[i],ev[j]);
-						if IsEmpty(product) then return product; fi;
-						split := AxisHelper@.splitVector(a,Mult(Alg(a))(b,c),product);
-						return product{FilteredPositions(split,s->not IsZero(s))};
-					end
-			))))));
+				ev{FilteredPositions(
+					AxisHelper@.splitSpace(a,ImageUnderMult(es[i],es[j],Alg(a)),
+						Fuse(fus)(ev[i],ev[j])),
+					sp-> not IsTrivial(sp) )}
+			));
 		else
+			ev := Eigenvalues(LeftActingDomain(Alg(a)),Ad(Alg(a),B)(a));
 			tbl := List([1..Length(ev)],i->List([1..Length(ev)],j->
-				Union(List(Basis(Eigenspaces(a)[i]),b->
-				Union(List(Basis(Eigenspaces(a)[j]),function(c)
-					local product, split;
-						product := Mult(Alg(a))(b,c);
-						if IsZero(product) then return []; fi;
-						split := AxisHelper@.splitVector(a,Mult(Alg(a))(b,c),ev);
-						return ev{FilteredPositions(split,s->not IsZero(s))};
-					end
-			))))));
+				ev{FilteredPositions(
+					AxisHelper@.splitSpace(a,ImageUnderMult(es[i],es[j],Alg(a)),ev),
+					sp-> not IsTrivial(sp) )}
+			));
 		fi;
 		fus := Fusion(
 			1/2*Form(Alg(a))(Vector(a),Vector(a)),
@@ -354,6 +352,10 @@ InstallMethod( ObservedFusion,
 		SetFusion(a,fus);
 		return fus;
 	end
+	);
+	InstallMethod( ObservedFusion,
+	[IsAttrVector and HasAlg],
+	a -> ObservedFusion(a,Alg(a))
 );
 
 InstallMethod( Relations,
@@ -443,12 +445,21 @@ InstallMethod( Check1Dimnlity,
 InstallMethod( CheckFusion,
 	[IsAxis],
 	function( a )
-  local time, rr, i, j;
+  local time, fus, es, rr, naughty, i, j;
 	time := Runtime();
+	fus := Fusion(a);
+	es := Eigenspaces(a);
 	rr := TrivialSubspace(Alg(a));
-	for i in [1..Length(Fields(Fusion(a)))] do
+	for i in [1..Length(Fields(fus))] do
 		for j in [1..i] do
-			rr := rr + (Eigenspaces(a,Fuse(Fusion(a))(Fields(Fusion(a))[i],Fields(Fusion(a))[j])) - ImageUnderMult(Eigenspaces(a)[i],Eigenspaces(a)[j],Alg(a)));
+			naughty := FilteredPositions(Fields(fus),
+				f -> not f in Fuse(fus)(Fields(fus)[i],Fields(fus)[j]));
+			rr := rr + 
+				Subspace(Alg(a),Concatenation(Concatenation(
+				List(Basis(es[i]),b->List(Basis(es[j]),function(c) local s;
+					s := AxisHelper@.splitVector(a,Mult(Alg(a))(b,c),Fields(fus));
+					if s <> fail then return s{naughty}; else return [Zero(Alg(a))]; fi; end)))));
+			if not IsTrivial(rr) then Error(); fi; # remove
 		od;
 	od;
 	if not IsTrivial(rr) then AddRelations(Alg(a),rr); fi;

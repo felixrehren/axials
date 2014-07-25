@@ -109,16 +109,20 @@ InstallMethod( ImproveCharacteristic,
 		local g, r, ans;
 		for g in GetAxialRep( fus ) do
 			for r in Filtered( GetAxialRep( fus, g ), r -> Characteristic(Alg(r)) > 0 ) do
-				ans := UserChoice(Concatenation(
-					ViewString(r),"\n",
-					"1 = try to find the algebra over Q, ",
-					" 2 = forget it and move on, 3 = quit."),
-					[0..3]);
-				if ans = 0 then Error();
-				elif ans = 1 then
-					FindAxialRep( Trgp(r), fus : field := Rationals );
-				elif ans = 2 then continue;
-				elif ans = 3 then return; fi;
+				if IsTrivial(Alg(r))
+				then WriteAxialRep( TrivialAxialRep( fus, Trgp(r), Rationals ) );
+				else
+					ans := UserChoice(Concatenation(
+						ViewString(r),"\n",
+						"1 = try to find the algebra over Q, ",
+						" 2 = forget it and move on, 3 = quit."),
+						[0..3]);
+					if ans = 0 then Error();
+					elif ans = 1 then
+						FindAxialRep( Trgp(r), fus : field := Rationals );
+					elif ans = 2 then continue;
+					elif ans = 3 then return; fi;
+				fi;
 			od;
 		od;
 	end

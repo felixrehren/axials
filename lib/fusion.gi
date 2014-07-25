@@ -154,8 +154,8 @@ InstallMethod( VirasoroFusion,
 	if p = q+1 or p = q-1 then SetIsUnitaryFusion(T,true); fi;
 
 	if p mod 2 = 0
-	then SetMiyamoto(T,List(Filtered(pairs,p -> p[1] mod 2 = 0),field)); fi;
-	if q mod 2 = 0
+	then SetMiyamoto(T,List(Filtered(pairs,p -> p[1] mod 2 = 0),field));
+	elif q mod 2 = 0
 	then SetMiyamoto(T,List(Filtered(pairs,p -> p[2] mod 2 = 0),field));
 	else SetMiyamoto(T,List(Filtered(pairs,p->Sum(p) mod 2 = 1),field));
 	fi;
@@ -168,15 +168,79 @@ InstallMethod( VirasoroFusion,
 	T -> Concatenation( "VirasoroFusion(",
 		String(VirasoroP(T)),",",String(VirasoroQ(T)),")" )
 	);
-InstallValue( MajoranaFusion, VirasoroFusion(4,3) );
-InstallValue( FischerFusion,
-	Fusion(
-		1/2,
-		[1,0,1/4],
-		[[[1],[],[1/4]],
-		[[],[0],[1/4]],
-		[[1/4],[1/4],[1,0]]],
-		"fischer"
-	)
+InstallMethod( KacEntry,
+	[IsRationalVirasoroFusion,IsPosInt,IsPosInt],
+	function( V, i, j )
+  local p, q;
+		p := VirasoroP(V);
+		q := VirasoroQ(V);
+		i := i mod p;
+		j := j mod q;
+		if i*j = 0 then return fail; fi;
+		return 1/2*((p*j-q*i)^2-(p-q)^2)/(4*p*q);
+	end
+	);
+InstallMethod( KacPosition,
+	[IsRationalVirasoroFusion,IsRat],
+	function( V, hw )
+  local p, q, i, j;
+		if not hw in Fields(V) then return fail; fi;
+		p := VirasoroP(V);
+		q := VirasoroQ(V);
+		for i in [1..VirasoroP(V)-1] do
+			for j in [1..VirasoroQ(V)-1] do
+				if hw = 1/2*((p*j-q*i)^2-(p-q)^2)/(4*p*q)
+				then return [i,j]; fi;
+			od;
+		od;
+		return fail;
+	end
+	);
+InstallMethod( VirasoroRamond,
+	[IsPosInt],
+	function(m)
+	local c, fields, tbl;
+	c := 3/2*(1-8/(m*(m+2)));
+	fields := Union(List([1..m],p->List(Filtered([1..m+2],q->(p-q) mod 2 = 0),
+		q->(((m+2)*p-m*q)^2-4)/(8*m*(m+2)) )));
+	tbl := List(fields,f->List(fields,g->[]));
+	return Fusion(
+		c,
+		fields,
+		tbl,
+		Concatenation("virR-",String(m))
+		);
+	end
+	);
+InstallMethod( VirasoroNeveuSchwarz,
+	[IsPosInt],
+	function(m)
+	local c, fields, tbl;
+	c := 3/2*(1-8/(m*(m+2)));
+	fields := Union(List([1..m],p->List(Filtered([1..m+2],q->(p-q) mod 2 = 1),
+		q->(((m+2)*p-m*q)^2-4)/(8*m*(m+2))+1/16 )));
+	tbl := List(fields,f->List(fields,g->[]));
+	return Fusion(
+		c,
+		fields,
+		tbl,
+		Concatenation("virNS-",String(m))
+		);
+	end
 );
 
+
+InstallValue( MajoranaFusion, VirasoroFusion(4,3) );
+InstallMethod( JordanFusion,
+	[IsRat],
+	al ->
+	Fusion(
+		1/2,
+		[1,0,al],
+		[[[1],[],[al]],
+		[[],[0],[al]],
+		[[al],[al],[1,0]]],
+		Concatenation("jordan-",String(al))
+	)
+);
+InstallValue( FischerFusion, JordanFusion(1/4) );

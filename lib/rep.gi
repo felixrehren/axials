@@ -146,7 +146,6 @@ InstallValue( AxialRepHelper@, rec(
 				pstnsR := FilteredPositions(bb,s->All(Recursive(x->AxialRepHelper@.canonTest(al,x))(s)));
 				elmtsS := List(pstnsR,i->
 					S!.map(Recursive(x->First(Alphabet(S),a->a^c=x))(bb[i])) );
-				if ForAny(elmtsS,s->s=fail) then Error(); fi;
 
 				for i in [1..Length(pstnsR)] do
 					for j in [1..i] do
@@ -161,7 +160,8 @@ InstallValue( AxialRepHelper@, rec(
 			NewRep := AxialRep( Fusion(R), Trgp(R), Alg(A,mt),
 				CreateDictionary(alph,a->LookupDictionary(dict,a)+Zero(A)), bb );
 			SetAlphabet(NewRep,alph);
-			rr := Subspace(A,List(rr,r->r+Zero(A)));
+			rr := CloseUnderMult(Subspace(A,List(rr,r->r+Zero(A))),A);
+			if ForAny(bb,w->IsList(w) and ForAny(w,l->not l in bb)) then Error(); fi; # remove
 			return Quotient(NewRep,rr);
 			end
 	, startAxialRep :=	function( T, fus, sym )

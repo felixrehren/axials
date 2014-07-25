@@ -23,6 +23,7 @@ DeclareAttribute( "Eigenspaces", IsAttrVector and HasAlg );
 DeclareProperty( "IsIdempotent", IsAttrVector and HasAlg );
 DeclareAttribute( "Fusion", IsAttrVector and IsIdempotent );
 DeclareSynonym( "IsAxis", IsAttrVector and IsIdempotent and HasFusion );
+DeclareOperation( "ObservedFusion", [IsAttrVector and HasAlg,IsVectorSpace] );
 DeclareAttribute( "ObservedFusion", IsAttrVector and HasAlg );
 DeclareAttribute( "Involution", IsAxis );
 DeclareAttribute( "Miyamoto", IsAxis );

@@ -239,7 +239,7 @@ InstallMethod( ShapeStr,
 	);
 	InstallMethod( ShapeGraph,
 	[HasShape],
-	S -> IncidenceGraph(IncidencePairs(S),
+	S -> PairsGraph(IncidencePairs(S),
 		List(Shape(S),s->Concatenation(List(s,String))))
 	);
 InstallMethod( Description, "for a trgp with shape",
